@@ -1,0 +1,38 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+   <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+   <link type="text/css" rel="stylesheet" href="http://streamtext.net/style/transcript.css" />
+   <title>IHaveADream : Transcript</title>
+</head>
+<body id="mcp">
+   <div id="streamTextPlayer" role="main" aria-live="assertive" aria-relevant="additions" style="direction:ltr">
+   </div>
+   <script language="javascript" type="text/javascript" src="http://streamtext.net/scripts/console-polyfill.min.js"></script>
+   <script language="javascript" type="text/javascript" src="http://streamtext.net/scripts/classList.min.js"></script>
+   <script language="javascript" type="text/javascript" src="./streamtext-player-app-local.js"> </script>
+
+   <script language="javascript" type="text/javascript">
+      document.addEventListener("DOMContentLoaded", function() {
+         var contentElement = document.querySelector("#streamTextPlayer");
+
+         var settings = {
+            eventName: "IHaveADream",
+            contentElement: contentElement,
+            interval: parseFloat(1) * 1000,
+            start: 0,
+            scroll: false,
+            allowLegalDisplay: false,
+            language: "en",
+            accessToken: "",
+            statusIndicator: true,
+            parentId: "mcp",
+            noFooter: true
+         };
+         require("streamtext")(settings);
+      });
+   </script>
+</body>
+</html>

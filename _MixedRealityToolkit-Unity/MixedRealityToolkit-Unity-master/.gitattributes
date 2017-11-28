@@ -1,0 +1,13 @@
+*.cs text diff=csharp
+
+*.txt text
+*.md text
+
+*.prefab eol=lf
+*.meta eol=lf
+*.mat eol=lf
+*.anim eol=lf
+*.controller eol=lf
+*.asset eol=lf
+
+.gitattributes text
