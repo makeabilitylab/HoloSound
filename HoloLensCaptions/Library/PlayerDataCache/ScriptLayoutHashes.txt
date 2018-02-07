@@ -231,6 +231,7 @@ cf55d93d01dab2c2d4dcc9572bac31dd Assembly-CSharp.dll:HoloToolkit.Unity.UAudioMin
 6f104984604a6ec9b27767e5cbdae14c Assembly-CSharp.dll:.DisplayDependentObjectActivator
 05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.MRTKEditor
 05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.AudioSourcesReference
+05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:.transformWithCursor
 060048163841f486acb147d2ead9eea2 Assembly-CSharp.dll:HoloToolkit.Unity.InputModule.ButtonController
 05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.TimerScheduler
 a29ad4068504428bc987939ad419ba75 Assembly-CSharp.dll:HoloToolkit.Unity.InputModule.CustomInputSource
@@ -397,4 +398,3 @@ a9e1c36c671666e79706791e556d5100 Vuforia.UnityExtensions.dll:Vuforia.VuMarkBehav
 3d1b89310e77c34bc0c8d7132231345c Vuforia.UnityExtensions.dll:Vuforia.WireframeBehaviour
 05524b8f659e7bfe5756d1335fec24ba Vuforia.UnityExtensions.dll:Vuforia.WireframeTrackableEventHandler
 15bea26698002c6c4a3087131232ce5c Vuforia.UnityExtensions.dll:Vuforia.WordBehaviour
-05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:.transformWithCursor

@@ -22,8 +22,7 @@ namespace HoloToolkit.Unity
         [Tooltip("The speed at which to move the Tagalong when updating its position (meters/second).")]
         public float PositionUpdateSpeed = 9.8f;
         [Tooltip("When true, the Tagalong's motion is smoothed.")]
-        public bool SmoothMotion = true;
-        [Range(0.0f, 1.0f), Tooltip("The factor applied to the smoothing algorithm. 1.0f is super smooth. But slows things down a lot.")]
+        public bool SmoothMotion = false;
         public float SmoothingFactor = 0.75f;
 
         // The BoxCollider represents the volume of the object that is tagging
