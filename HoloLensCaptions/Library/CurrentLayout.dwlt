@@ -45,7 +45,7 @@ MonoBehaviour:
   m_MinSize: {x: 679, y: 492}
   m_MaxSize: {x: 14002, y: 14042}
   vertical: 0
-  controlID: 117
+  controlID: 51
 --- !u!114 &3
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -143,7 +143,7 @@ MonoBehaviour:
     y: 0
     width: 2560
     height: 1357
-  m_MinSize: {x: 950, y: 542}
+  m_MinSize: {x: 950, y: 300}
   m_MaxSize: {x: 10000, y: 10000}
 --- !u!114 &7
 MonoBehaviour:
@@ -252,8 +252,8 @@ MonoBehaviour:
     y: 0
     width: 1538
     height: 713
-  m_MinSize: {x: 204, y: 221}
-  m_MaxSize: {x: 4004, y: 4021}
+  m_MinSize: {x: 200, y: 200}
+  m_MaxSize: {x: 4000, y: 4000}
   m_ActualView: {fileID: 16}
   m_Panes:
   - {fileID: 16}
@@ -485,9 +485,9 @@ MonoBehaviour:
   m_PersistentViewDataDictionary: {fileID: 0}
   m_TreeViewState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: 28340000
-    m_LastClickedID: 13352
-    m_ExpandedIDs: 6cfbffff98fbffff0000000042340000
+    m_SelectedIDs: 
+    m_LastClickedID: 0
+    m_ExpandedIDs: 2250ffffd850fffff852ffff3c8bfffff28bffff128effff6cfbffff98fbffff00000000303400004234000078400000b4400000f2400000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -543,9 +543,9 @@ MonoBehaviour:
   m_isRotationLocked: 0
   m_AudioPlay: 0
   m_Position:
-    m_Target: {x: -0.6633088, y: 0.11107409, z: 1.7430876}
+    m_Target: {x: -0.01237067, y: -0.21448141, z: 1.2643462}
     speed: 2
-    m_Value: {x: -0.6633088, y: 0.11107409, z: 1.7430876}
+    m_Value: {x: -0.01237067, y: -0.21448141, z: 1.2643462}
   m_RenderMode: 0
   m_ValidateTrueMetals: 0
   m_SceneViewState:
@@ -569,13 +569,13 @@ MonoBehaviour:
       speed: 2
       m_Value: 0
   m_Rotation:
-    m_Target: {x: 0.21575107, y: 0.018452888, z: -0.0040777633, w: 0.97626555}
+    m_Target: {x: -0.3197832, y: 0.0005690023, z: -0.00019238977, w: -0.9474905}
     speed: 2
-    m_Value: {x: -0.21575108, y: -0.018452888, z: 0.0040777633, w: -0.9762656}
+    m_Value: {x: -0.31978324, y: 0.00056900235, z: -0.00019238978, w: -0.9474906}
   m_Size:
-    m_Target: 9.846561
+    m_Target: 0.50601184
     speed: 2
-    m_Value: 9.846561
+    m_Value: 0.50601184
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -634,7 +634,7 @@ MonoBehaviour:
     m_HSlider: 0
     m_VSlider: 0
     m_IgnoreScrollWheelUntilClicked: 0
-    m_EnableMouseInput: 0
+    m_EnableMouseInput: 1
     m_EnableSliderZoom: 0
     m_UniformScale: 1
     m_UpDirection: 1
