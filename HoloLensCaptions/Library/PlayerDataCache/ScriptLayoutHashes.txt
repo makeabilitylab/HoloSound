@@ -212,7 +212,7 @@ fad8dbf1251c6c663ef61aa4876f6776 Assembly-CSharp.dll:HoloToolkit.UI.Keyboard.Key
 cade32f28e21a5f2370dd82c3d56c28c Assembly-CSharp.dll:HoloToolkit.Unity.SceneLauncherButton
 b48597bac756ea53cecb08fc53de8b9f Assembly-CSharp.dll:HoloToolkit.Unity.Buttons.ButtonTextProfile
 05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.InputModule.SetGlobalListener
-7281f0601c04d1b1c5670e302ccd9aed Assembly-CSharp.dll:HoloToolkit.Unity.GlassEarTagalong
+6aec8ed069c338a1c6314556e99461b6 Assembly-CSharp.dll:HoloToolkit.Unity.GlassEarTagalong
 39e33eeaa8482d2bae989c16b9871dff Assembly-CSharp.dll:HoloToolkit.Unity.InputModule.MeshCursor
 531fdf2c183c5453dac7ae13d94bb399 Assembly-CSharp.dll:GLTF.GLTFComponentStreamingAssets
 fc1e0f4d8439d9928083474691511a13 UnityEngine.Networking.dll:UnityEngine.Networking.NetworkAnimator

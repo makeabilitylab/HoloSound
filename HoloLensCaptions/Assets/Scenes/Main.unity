@@ -160,6 +160,12 @@ Prefab:
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 3eddd1c29199313478dd3f912bfab2ab, type: 2}
   m_IsPrefabParent: 0
+--- !u!114 &48665786 stripped
+MonoBehaviour:
+  m_PrefabParentObject: {fileID: 114000012434513746, guid: 3eddd1c29199313478dd3f912bfab2ab,
+    type: 2}
+  m_PrefabInternal: {fileID: 48665785}
+  m_Script: {fileID: 11500000, guid: b160d197a8ca1894796ae263bafec0ac, type: 3}
 --- !u!1 &128694709
 GameObject:
   m_ObjectHideFlags: 0
@@ -476,7 +482,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac8d5b128a1d8204fb76c86f47b75912, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PivotAxis: 1
+  PivotAxis: 0
   TargetTransform: {fileID: 0}
 --- !u!114 &777317441
 MonoBehaviour:
@@ -545,8 +551,7 @@ MonoBehaviour:
   VerticalRayCount: 3
   MinimumTagalongDistance: 0.8
   DepthUpdateSpeed: 4
-  DebugDrawLines: 1
-  DebugPointLight: {fileID: 0}
+  input: {fileID: 48665786}
 --- !u!1 &887835035
 GameObject:
   m_ObjectHideFlags: 0

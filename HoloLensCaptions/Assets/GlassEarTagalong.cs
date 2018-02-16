@@ -11,7 +11,7 @@ namespace HoloToolkit.Unity
     /// of the camera and that keeps the Tagalong object in front of other
     /// holograms including the Spatial Mapping Mesh.
     /// </summary>
-    public class GlassEarTagalong : SimpleTagalong
+    public class GlassEarTagalong : SimpleTagalong, InputModule.IInputClickHandler
     {
         // These members allow for specifying target and minimum percentage in
         // the FOV.
@@ -37,16 +37,17 @@ namespace HoloToolkit.Unity
         [Tooltip("The speed to update the Tagalong's distance when compensating for depth (meters/second).")]
         public float DepthUpdateSpeed = 4.0f;
 
-        // These members are useful for debugging the Tagalong in Unity's
-        // editor or the HoloLens.
-        [Tooltip("Set to true to draw lines of interest in Unity's scene view during play-mode.")]
-        public bool DebugDrawLines = false;
-        [Tooltip("Useful for visualizing the Raycasts used for determining the depth to place the Tagalong. Set to 'None' to disable.")]
-        public Light DebugPointLight;
+        private bool frozen;
+
+        public InputModule.InputManager input;
 
         protected override void Start()
         {
             base.Start();
+
+            input.AddGlobalListener(gameObject);
+
+            frozen = false;
 
             // If the specified minimum distance for the tagalong would be within the
             // camera's near clipping plane, adjust it to be 10% beyond the near
@@ -62,9 +63,18 @@ namespace HoloToolkit.Unity
             EnforceDistance = false;
         }
 
+
+        public void OnInputClicked(InputModule.InputClickedEventData eventData)
+        {
+            frozen = !frozen;
+        }
+
         protected override void Update()
         {
-            base.Update();
+            if (!frozen)
+            {
+                base.Update();
+            }
             transform.localScale = new Vector3(1,1,1) * (transform.position - CameraCache.Main.transform.position).magnitude;
         }
 
