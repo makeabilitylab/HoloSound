@@ -100,7 +100,8 @@ namespace HoloToolkit.Unity
             float moveRight = extents.x - frustumPlanes[frustumLeft].GetDistanceToPoint(normalizedWindowPos);
             float moveLeft = extents.x - frustumPlanes[frustumRight].GetDistanceToPoint(normalizedWindowPos);
             float moveUp = extents.y - frustumPlanes[frustumBottom].GetDistanceToPoint(normalizedWindowPos);
-            float moveDown = extents.y - frustumPlanes[frustumTop].GetDistanceToPoint(normalizedWindowPos);
+            Plane horizontalCenterPlane = new Plane(-cameraTransform.up, cameraPosition);
+            float moveDown = extents.y - horizontalCenterPlane.GetDistanceToPoint(normalizedWindowPos);
 
             if (moveRight > 0) {
                 normalizedWindowPos += cameraTransform.right.normalized * moveRight;
