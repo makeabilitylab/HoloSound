@@ -204,7 +204,6 @@ c33d01c4bc5af79105f862d8a2f08cdf Assembly-CSharp.dll:HoloToolkit.Unity.Buttons.B
 05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.SharingWithUNET.JoinSelectedSessionButton
 9c9dfbd5b94888324d2380019ff9c560 Assembly-CSharp.dll:HoloToolkit.Unity.SpatialUnderstanding
 f133614bc5eb7ed8e7fb906136387ff4 Assembly-CSharp.dll:HoloToolkit.Unity.SpatialMapping.SpatialMappingObserver
-05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:.webSocket
 7f51c3ae6d2a735d8137d211eefae86d Assembly-CSharp.dll:HoloToolkit.Unity.Tagalong
 05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.SharingWithUNET.PositionDebugButton
 c484ca1fbf03cde4786f8ffa4334186d Assembly-CSharp.dll:HoloToolkit.Unity.InputModule.InteractiveMeshCursor
@@ -212,7 +211,7 @@ fad8dbf1251c6c663ef61aa4876f6776 Assembly-CSharp.dll:HoloToolkit.UI.Keyboard.Key
 cade32f28e21a5f2370dd82c3d56c28c Assembly-CSharp.dll:HoloToolkit.Unity.SceneLauncherButton
 b48597bac756ea53cecb08fc53de8b9f Assembly-CSharp.dll:HoloToolkit.Unity.Buttons.ButtonTextProfile
 05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.InputModule.SetGlobalListener
-6aec8ed069c338a1c6314556e99461b6 Assembly-CSharp.dll:HoloToolkit.Unity.GlassEarTagalong
+978e1712dbf9eb42fa6bf083a4ab1324 Assembly-CSharp.dll:HoloToolkit.Unity.GlassEarTagalong
 39e33eeaa8482d2bae989c16b9871dff Assembly-CSharp.dll:HoloToolkit.Unity.InputModule.MeshCursor
 531fdf2c183c5453dac7ae13d94bb399 Assembly-CSharp.dll:GLTF.GLTFComponentStreamingAssets
 fc1e0f4d8439d9928083474691511a13 UnityEngine.Networking.dll:UnityEngine.Networking.NetworkAnimator
@@ -289,3 +288,4 @@ d5caa5c507202d113c0e7f0a26ca4bba Assembly-CSharp.dll:HoloToolkit.Unity.AudioOccl
 3411a3aeb3978b6ff731b6e1f36f6be9 Assembly-CSharp.dll:HoloToolkit.Unity.Buttons.CompoundButtonToggle
 c200d5e5157786d95373f6cec9caf166 Assembly-CSharp.dll:HoloToolkit.Unity.SpatialMapping.SurfacePlane
 aa573da5178a98cdf7ef39d22614bb9b Assembly-CSharp.dll:HoloToolkit.Unity.Buttons.CompoundButton
+128c6cb5667cc6a2d8ca05fdfe842ceb Assembly-CSharp.dll:HoloToolkit.Unity.CaptionController

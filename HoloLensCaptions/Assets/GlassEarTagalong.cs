@@ -11,12 +11,15 @@ namespace HoloToolkit.Unity
     /// of the camera and that keeps the Tagalong object in front of other
     /// holograms including the Spatial Mapping Mesh.
     /// </summary>
-    public class GlassEarTagalong : SimpleTagalong, InputModule.IInputClickHandler
+    public class GlassEarTagalong : SimpleTagalong
     {
         // These members allow for specifying target and minimum percentage in
         // the FOV.
         [Range(0.0f, 0.1f), Tooltip("Deadzone of movement, no units.")]
         public float MaxRadialDistance = 0.02f;
+
+        [Range(0.0f, 0.1f), Tooltip("Radial size to look at frozen one.")]
+        public float FrozenTargetingRadialDistance = 0.04f;
 
         // These members control how many rays to cast when looking for
         // collisions with other holograms.
@@ -28,17 +31,13 @@ namespace HoloToolkit.Unity
         [Tooltip("Don't allow the Tagalong to come closer than this distance.")]
         public float MinimumTagalongDistance = 1.0f;
 
-        private bool frozen;
+        public bool frozen = false;
 
         public InputModule.InputManager input;
 
         protected override void Start()
         {
             base.Start();
-
-            input.AddGlobalListener(gameObject);
-
-            frozen = false;
 
             // If the specified minimum distance for the tagalong would be within the
             // camera's near clipping plane, adjust it to be 10% beyond the near
@@ -54,19 +53,38 @@ namespace HoloToolkit.Unity
             EnforceDistance = false;
         }
 
-
-        public void OnInputClicked(InputModule.InputClickedEventData eventData)
-        {
-            frozen = !frozen;
-        }
-
         protected override void Update()
         {
-            if (!frozen)
-            {
+            if (!frozen) {
                 base.Update();
             }
             transform.localScale = new Vector3(1,1,1) * (transform.position - CameraCache.Main.transform.position).magnitude;
+            
+            gameObject.GetComponent<TextMesh>().color = IsTargeted() ? Color.red : Color.white;
+        }
+
+        public bool IsTargeted() {
+            if (!frozen) {
+                return false;
+            }
+
+            Transform cameraTransform = CameraCache.Main.transform;
+            Vector3 cameraPosition = cameraTransform.position;
+
+            Vector3 normalizedWindowPos = cameraPosition + (transform.position - cameraPosition).normalized;
+            Vector3 normalizedTargetPos = cameraPosition + cameraTransform.forward;
+
+            Vector3 offset = normalizedWindowPos - normalizedTargetPos; 
+
+            return offset.magnitude < FrozenTargetingRadialDistance;
+        }
+
+        public void SetMessage(string message) {
+            TextMesh captionDisplay = GetComponent<TextMesh>();
+            if (message.Length > 60) 
+                captionDisplay.text = message.Substring(message.Length - 60);
+            else
+                captionDisplay.text = message;
         }
 
         /// <summary>
