@@ -15,14 +15,8 @@ namespace HoloToolkit.Unity
     {
         // These members allow for specifying target and minimum percentage in
         // the FOV.
-        [Range(0.0f, 1.0f), Tooltip("The minimum horizontal percentage visible before the object starts tagging along.")]
-        public float MinimumHorizontalOverlap = 0.1f;
-        [Range(0.0f, 1.0f), Tooltip("The target horizontal percentage the Tagalong attempts to achieve.")]
-        public float TargetHorizontalOverlap = 1.0f;
-        [Range(0.0f, 1.0f), Tooltip("The minimum vertical percentage visible before the object starts tagging along.")]
-        public float MinimumVerticalOverlap = 0.1f;
-        [Range(0.0f, 1.0f), Tooltip("The target vertical percentage the Tagalong attempts to achieve.")]
-        public float TargetVerticalOverlap = 1.0f;
+        [Range(0.0f, 0.1f), Tooltip("Deadzone of movement, no units.")]
+        public float MaxRadialDistance = 0.02f;
 
         // These members control how many rays to cast when looking for
         // collisions with other holograms.
@@ -33,9 +27,6 @@ namespace HoloToolkit.Unity
 
         [Tooltip("Don't allow the Tagalong to come closer than this distance.")]
         public float MinimumTagalongDistance = 1.0f;
-
-        [Tooltip("The speed to update the Tagalong's distance when compensating for depth (meters/second).")]
-        public float DepthUpdateSpeed = 4.0f;
 
         private bool frozen;
 
@@ -91,36 +82,17 @@ namespace HoloToolkit.Unity
             Vector3 cameraPosition = cameraTransform.position;
 
             Vector3 normalizedWindowPos = cameraPosition + (transform.position - cameraPosition).normalized;
+            Vector3 normalizedTargetPos = cameraPosition + (cameraTransform.forward + (frustumPlanes[frustumBottom].normal * (-0.5F * frustumPlanes[frustumBottom].GetDistanceToPoint(cameraPosition + cameraTransform.forward)))).normalized;
 
-            Vector3 extents = tagalongCollider.size * 0.5F;
+            Vector3 offset = normalizedWindowPos - normalizedTargetPos; 
 
-            // Determine if the Tagalong needs to move to the right or the left
-            // to get back inside the camera's view frustum. The normals of the
-            // planes that make up the camera's view frustum point inward.
-            float moveRight = extents.x - frustumPlanes[frustumLeft].GetDistanceToPoint(normalizedWindowPos);
-            float moveLeft = extents.x - frustumPlanes[frustumRight].GetDistanceToPoint(normalizedWindowPos);
-            float moveUp = extents.y - frustumPlanes[frustumBottom].GetDistanceToPoint(normalizedWindowPos);
-            Plane horizontalCenterPlane = new Plane(-cameraTransform.up, cameraPosition);
-            float moveDown = extents.y - horizontalCenterPlane.GetDistanceToPoint(normalizedWindowPos);
-
-            if (moveRight > 0) {
-                normalizedWindowPos += cameraTransform.right.normalized * moveRight;
+            if (offset.magnitude > MaxRadialDistance)
+            {
+                //note: might still land outside the radius leading to repeated small movements. would be better to do this with a plane on camera.forward
+                normalizedWindowPos = cameraPosition + ((normalizedTargetPos + (offset * (MaxRadialDistance / offset.magnitude)))-cameraPosition).normalized;
             }
-            if (moveLeft > 0) {
-                normalizedWindowPos -= cameraTransform.right.normalized * moveLeft;
-            }
-            if (moveUp > 0) {
-                normalizedWindowPos += cameraTransform.up.normalized * moveUp;
-            }
-            if (moveDown > 0) {
-                normalizedWindowPos -= cameraTransform.up.normalized * moveDown;
-            }
-            //normalizedWindowPos = cameraPosition + cameraTransform.forward;
-            
-
 
             //Do the raycasts now
-
             float width = tagalongCollider.size.x;
             float height = tagalongCollider.size.y;
 
