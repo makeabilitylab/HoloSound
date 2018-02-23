@@ -59,8 +59,8 @@ namespace HoloToolkit.Unity
                 base.Update();
             }
             transform.localScale = new Vector3(1,1,1) * (transform.position - CameraCache.Main.transform.position).magnitude;
-            
-            gameObject.GetComponent<TextMesh>().color = IsTargeted() ? Color.red : Color.white;
+
+            gameObject.GetComponent<TextMesh>().color = Color.white; // IsTargeted() ? Color.red : Color.white;
         }
 
         public bool IsTargeted() {
