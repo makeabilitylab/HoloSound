@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using UnityEngine.XR.WSA;
 
 #if !UNITY_EDITOR
 using System.Diagnostics;
@@ -11,16 +12,28 @@ using Windows.Storage.Streams;
 
 namespace HoloToolkit.Unity
 {
-    public class CaptionController : MonoBehaviour, InputModule.IInputClickHandler
+    public class CaptionController : Singleton<CaptionController>, InputModule.IInputClickHandler
     {
         public InputModule.InputManager input;
 
         List<GameObject> captions;
 
-        #if !UNITY_EDITOR
+        GameObject MoveWithMeButton;
+        GameObject AutoDistanceButton;
+        GameObject DepthDebugButton;
+        GameObject DepthObject;
+
+        public bool MoveWithMe = false;
+        public int CaptionDistance = 0;
+        public bool DepthDebug = false;
+
+
+        private bool settings_set = false;
+
+#if !UNITY_EDITOR
             Uri uri = new Uri("ws://172.28.4.99:6502");
             private MessageWebSocket messageWebSocket;
-        #endif
+#endif
 
         string message = "Hello! Captions are loading...";
 
@@ -29,11 +42,31 @@ namespace HoloToolkit.Unity
             input.AddGlobalListener(gameObject);
 
             captions = new List<GameObject>();
-            GameObject o = transform.Find("CaptionsDisplay").gameObject;
-            if (o==null) {
-                throw new Exception("Can't find child CaptionsDisplay");
+            captions.Add(transform.Find("CaptionsDisplay").gameObject);
+
+            MoveWithMeButton = GameObject.Find("MoveWithMeButton");
+            if (MoveWithMeButton == null)
+            {
+                throw new Exception("Can't find MoveWithMeButton");
             }
-            captions.Add(o);
+
+            AutoDistanceButton = GameObject.Find("AutoDistanceButton");
+            if (AutoDistanceButton == null)
+            {
+                throw new Exception("Can't find AutoDistanceButton");
+            }
+
+            DepthDebugButton = GameObject.Find("DepthDebugButton");
+            if (DepthDebugButton == null)
+            {
+                throw new Exception("Can't find DepthDebugButton)");
+            }
+
+            DepthObject = GameObject.Find("WorldMesh(CRASHES EDITOR)");
+            if (DepthObject == null)
+            {
+                throw new Exception("Can't find WorldMesh(CRASHES EDITOR)");
+            }
 
             System.Diagnostics.Debug.WriteLine("Web socket script started.");
             #if !UNITY_EDITOR
@@ -46,25 +79,77 @@ namespace HoloToolkit.Unity
             foreach (GameObject o in captions) {
                 o.GetComponent<GlassEarTagalong>().SetMessage(message);
             }
+
+            if (!settings_set)
+            {
+                MoveWithMeButton.GetComponent<TextMesh>().text = MoveWithMe ? "Captions move with you" : "Captions are fixed to world";
+                AutoDistanceButton.GetComponent<TextMesh>().text = (CaptionDistance==0) ? "Automatic depth" : ("Fixed depth: "+CaptionDistance+"m");
+                DepthDebugButton.GetComponent<TextMesh>().text = DepthDebug ? "Showing depth debug" : "Not showing depth debug";
+
+                gameObject.GetComponent<TranslateToCamera>().EnableMovement = MoveWithMe;
+
+                DepthObject.GetComponent<SpatialMappingRenderer>().enabled = DepthDebug;
+
+                settings_set = true;
+            }
         }
 
         public void OnInputClicked(InputModule.InputClickedEventData eventData)
         {
+            GameObject targeted = InputModule.FocusManager.Instance.TryGetFocusedObject(eventData);
+
+            if (targeted == MoveWithMeButton)
+            {
+                MoveWithMe = !MoveWithMe;
+                settings_set = false;
+                return;
+            }
+
+            if (targeted == AutoDistanceButton)
+            {
+                if (CaptionDistance == 0)
+                {
+                    CaptionDistance = 1;
+                } else if (CaptionDistance == 1)
+                {
+                    CaptionDistance = 2;
+                }
+                else if (CaptionDistance == 2)
+                {
+                    CaptionDistance = 4;
+                }
+                else if (CaptionDistance == 4)
+                {
+                    CaptionDistance = 8;
+                } else
+                {
+                    CaptionDistance = 0;
+                }
+
+                settings_set = false;
+                return;
+            }
+
+            if (targeted == DepthDebugButton)
+            {
+                DepthDebug = !DepthDebug;
+                settings_set = false;
+                return;
+            }
+
             if (captions.Count > 1) {
-                bool deleted = false;
+                GameObject focused = InputModule.FocusManager.Instance.TryGetFocusedObject(eventData);
+                print(focused);
+                eventData.Use();
 
                 for (int i = captions.Count - 1; i >= 0; i--)
                 {
                     GameObject o = captions[i];
-                    if (o.GetComponent<GlassEarTagalong>().IsTargeted()) {
+                    if (o.GetComponent<GlassEarTagalong>().frozen && targeted == o) {
                         captions.RemoveAt(i);
                         Destroy(o);
-                        deleted = true;
+                        return;
                     }
-                }
-
-                if (deleted) {
-                    return;
                 }
             }
 
@@ -77,6 +162,7 @@ namespace HoloToolkit.Unity
 
             GameObject newO = Instantiate(captions[0]);
             newO.GetComponent<GlassEarTagalong>().frozen = false;
+            newO.transform.SetParent(transform);
             captions.Add(newO);
         }
         

@@ -55,14 +55,23 @@ namespace HoloToolkit.Unity
 
         protected override void Update()
         {
-            if (!frozen) {
-                base.Update();
-            }
+            base.Update();
             transform.localScale = new Vector3(1,1,1) * (transform.position - CameraCache.Main.transform.position).magnitude;
 
-            gameObject.GetComponent<TextMesh>().color = Color.white; // IsTargeted() ? Color.red : Color.white;
+            /*
+            bool targeted = IsTargeted();            
+
+            foreach (Transform child in transform)
+            {
+                if (child.name == "Quad")
+                {
+                    child.gameObject.SetActive(targeted);
+                }
+            }
+            */
         }
 
+        /*
         public bool IsTargeted() {
             if (!frozen) {
                 return false;
@@ -76,10 +85,11 @@ namespace HoloToolkit.Unity
 
             Vector3 offset = normalizedWindowPos - normalizedTargetPos; 
 
-            return offset.magnitude < FrozenTargetingRadialDistance;
+            return offset.magnitude < FrozenTargetingRadialDistance; 
         }
+        */
 
-        public void SetMessage(string message) {
+            public void SetMessage(string message) {
             TextMesh captionDisplay = GetComponent<TextMesh>();
             if (message.Length > 60) 
                 captionDisplay.text = message.Substring(message.Length - 60);
@@ -96,72 +106,70 @@ namespace HoloToolkit.Unity
         /// <returns>True if the Tagalong needs to move to satisfy requirements; false otherwise.</returns>
         protected override bool CalculateTagalongTargetPosition(Vector3 fromPosition, out Vector3 toPosition)
         {
+
+            bool moveWithMe = CaptionController.Instance.MoveWithMe;
+            int captionDistance = CaptionController.Instance.CaptionDistance;
+
+            if (frozen && !moveWithMe)
+            {
+                // don't use the interpolator
+                toPosition = new Vector3(0, 0, 0);
+                return false;
+            }
+
             Transform cameraTransform = CameraCache.Main.transform;
             Vector3 cameraPosition = cameraTransform.position;
 
             Vector3 normalizedWindowPos = cameraPosition + (transform.position - cameraPosition).normalized;
             Vector3 normalizedTargetPos = cameraPosition + (cameraTransform.forward + (frustumPlanes[frustumBottom].normal * (-0.5F * frustumPlanes[frustumBottom].GetDistanceToPoint(cameraPosition + cameraTransform.forward)))).normalized;
 
-            Vector3 offset = normalizedWindowPos - normalizedTargetPos; 
+            if (!frozen) {
+                Vector3 offset = normalizedWindowPos - normalizedTargetPos; 
 
-            if (offset.magnitude > MaxRadialDistance)
-            {
-                //note: might still land outside the radius leading to repeated small movements. would be better to do this with a plane on camera.forward
-                normalizedWindowPos = cameraPosition + ((normalizedTargetPos + (offset * (MaxRadialDistance / offset.magnitude)))-cameraPosition).normalized;
-            }
-
-            //Do the raycasts now
-            float width = tagalongCollider.size.x;
-            float height = tagalongCollider.size.y;
-
-            // Find the lower-left corner of the Tagalong's BoxCollider.
-            Vector3 lowerLeftCorner = normalizedWindowPos - (cameraTransform.right * (width / 2)) - (cameraTransform.up * (height / 2));
-
-            // Cast a grid of rays across the Tagalong's collider. Keep track of
-            // of the closest hit, ignoring collisions with ourselves and those
-            // that are closer than MinimumColliderDistance.
-            RaycastHit closestHit = new RaycastHit();
-            float closestHitDistance = float.PositiveInfinity;
-            RaycastHit[] allHits;
-            for (int x = 0; x < HorizontalRayCount; x++)
-            {
-                Vector3 xCoord = lowerLeftCorner + cameraTransform.right * (x * width / (HorizontalRayCount - 1));
-                for (int y = 0; y < VerticalRayCount; y++)
+                if (offset.magnitude > MaxRadialDistance)
                 {
-                    Vector3 targetCoord = xCoord + cameraTransform.up * (y * height / (VerticalRayCount - 1));
-
-                    allHits = Physics.RaycastAll(cameraPosition, targetCoord - cameraPosition, TagalongDistance);
-                    for (int h = 0; h < allHits.Length; h++)
-                    {
-                        if (allHits[h].distance < closestHitDistance &&
-                            !allHits[h].transform.IsChildOf(transform))
-                        {
-                            closestHit = allHits[h];
-                            closestHitDistance = closestHit.distance;
-                        }
-                    }
+                    //note: might still land outside the radius leading to repeated small movements. would be better to do this with a plane on camera.forward
+                    normalizedWindowPos = cameraPosition + ((normalizedTargetPos + (offset * (MaxRadialDistance / offset.magnitude)))-cameraPosition).normalized;
                 }
             }
 
-            if (closestHitDistance < TagalongDistance)
-            {
-                // The closestHitDistance is a straight-line from the camera to the
-                // point on the collider that was hit. Unless the closest hit was
-                // encountered on the center Raycast, using the distance found will
-                // actually push the tagalong too far away, and part of the object
-                // that was hit will show through the Tagalong. We can fix that
-                // with a little thing we like to call Trigonometry.
-                Vector3 cameraToTransformPosition = normalizedWindowPos - cameraPosition;
-                Vector3 cameraToClosestHitPoint = closestHit.point - cameraPosition;
-                float angleBetween = Vector3.Angle(cameraToTransformPosition, cameraToClosestHitPoint);
-                closestHitDistance = closestHitDistance * Mathf.Cos(angleBetween * Mathf.Deg2Rad);
-                closestHitDistance = Mathf.Max(closestHitDistance, MinimumTagalongDistance);
+            float TargetDistance = 8;
+
+            if (captionDistance == 0) {
+
+                //Do the raycasts now
+                float width = tagalongCollider.size.x;
+                float height = tagalongCollider.size.y;
+
+                // Find the lower-left corner of the Tagalong's BoxCollider.
+                Vector3 lowerLeftCorner = normalizedWindowPos - (cameraTransform.right * (width / 2)) - (cameraTransform.up * (height / 2));
+                RaycastHit[] allHits;
+                for (int x = 0; x < HorizontalRayCount; x++)
+                {
+                    Vector3 xCoord = lowerLeftCorner + cameraTransform.right * (x * width / (HorizontalRayCount - 1));
+                    for (int y = 0; y < VerticalRayCount; y++)
+                    {
+                        Vector3 targetCoord = xCoord + cameraTransform.up * (y * height / (VerticalRayCount - 1));
+
+                        allHits = Physics.RaycastAll(cameraPosition, targetCoord - cameraPosition, TagalongDistance);
+                        for (int h = 0; h < allHits.Length; h++)
+                        {
+                            if (!allHits[h].transform.IsChildOf(transform))
+                            {
+                                float angleBetween = Vector3.Angle(normalizedWindowPos - cameraPosition, allHits[h].point - cameraPosition);
+                                float dist = allHits[h].distance * Mathf.Cos(angleBetween * Mathf.Deg2Rad);
+
+                                TargetDistance = Mathf.Max(MinimumTagalongDistance, Mathf.Min(TargetDistance, dist));
+                            }
+                        }
+                    }
+                }
             } else {
-                closestHitDistance = TagalongDistance;
+                TargetDistance = captionDistance;
             }
 
             // Now recalculate the distance
-            transform.position = cameraPosition + ((normalizedWindowPos - cameraPosition) * closestHitDistance);
+            transform.position = cameraPosition + ((normalizedWindowPos - cameraPosition) * TargetDistance);
 
             // don't use the interpolator
             toPosition = new Vector3(0,0,0);

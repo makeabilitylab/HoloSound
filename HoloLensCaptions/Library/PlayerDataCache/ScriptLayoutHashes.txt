@@ -174,6 +174,7 @@ e1aa8fa2d37d6483e8f5f4ef15c12072 Assembly-CSharp.dll:HoloToolkit.Unity.Buttons.A
 05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.InputModule.KeyboardManager
 b39fddbe4ede4fafe2e1641885144305 Assembly-CSharp.dll:HoloToolkit.Sharing.SharingWorldAnchorManager
 cf55d93d01dab2c2d4dcc9572bac31dd Assembly-CSharp.dll:HoloToolkit.Unity.UAudioMiniManager
+7220a9c78de7323bb415529322571575 Assembly-CSharp.dll:HoloToolkit.Unity.CaptionController
 6f104984604a6ec9b27767e5cbdae14c Assembly-CSharp.dll:.DisplayDependentObjectActivator
 05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.MRTKEditor
 05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.AudioSourcesReference
@@ -288,4 +289,5 @@ d5caa5c507202d113c0e7f0a26ca4bba Assembly-CSharp.dll:HoloToolkit.Unity.AudioOccl
 3411a3aeb3978b6ff731b6e1f36f6be9 Assembly-CSharp.dll:HoloToolkit.Unity.Buttons.CompoundButtonToggle
 c200d5e5157786d95373f6cec9caf166 Assembly-CSharp.dll:HoloToolkit.Unity.SpatialMapping.SurfacePlane
 aa573da5178a98cdf7ef39d22614bb9b Assembly-CSharp.dll:HoloToolkit.Unity.Buttons.CompoundButton
-128c6cb5667cc6a2d8ca05fdfe842ceb Assembly-CSharp.dll:HoloToolkit.Unity.CaptionController
+05524b8f659e7bfe5756d1335fec24ba Assembly-CSharp.dll:HoloToolkit.Unity.InputModule.Tests.TapToDelete
+5c26a6150ff9b8adec4eef366667b381 Assembly-CSharp.dll:.TranslateToCamera
