@@ -13,6 +13,11 @@ namespace HoloToolkit.Unity
     /// </summary>
     public class GlassEarTagalong : SimpleTagalong
     {
+
+        private string line1 = null;
+        private string line2 = null;
+        private string line3 = null;
+        private string line4 = null;
         // These members allow for specifying target and minimum percentage in
         // the FOV.
         [Range(0.0f, 0.1f), Tooltip("Deadzone of movement, no units.")]
@@ -89,12 +94,37 @@ namespace HoloToolkit.Unity
         }
         */
 
-            public void SetMessage(string message) {
+        public void SetMessage(string message) {
             TextMesh captionDisplay = GetComponent<TextMesh>();
+     
+            //Multi Line text without scroll
+
+            if (message.Length > 180)
+                message = message.Substring(message.Length - 180);
+            string textToDisplay = " ";
+            string[] words = message.Split(' ');
+            int count = 0;
+            foreach (var word in words)
+            {
+                if (count <= 60)
+                {
+                    count = count + word.Length + 1;
+                    textToDisplay = textToDisplay + word + " ";
+                }
+                else
+                {
+                    textToDisplay = textToDisplay + "\n" + word + " ";
+                    count = word.Length + 1;
+                }
+            }
+            captionDisplay.text = textToDisplay;
+            /*
+             * Single Line Text
             if (message.Length > 60) 
                 captionDisplay.text = message.Substring(message.Length - 60);
             else
                 captionDisplay.text = message;
+             */
         }
 
         /// <summary>
