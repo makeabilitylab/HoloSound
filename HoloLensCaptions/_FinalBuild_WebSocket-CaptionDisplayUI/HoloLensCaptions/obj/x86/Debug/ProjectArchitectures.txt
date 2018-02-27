@@ -1,2 +1,0 @@
-C:\Users\black\GIT_Build\GlassEar\HoloCaptionsTagAlong\WebSocket-CaptionDisplayUI\GeneratedProjects\UWP\Assembly-CSharp\Assembly-CSharp.csproj;x86
-C:\Users\black\GIT_Build\GlassEar\HoloCaptionsTagAlong\WebSocket-CaptionDisplayUI\HoloLensCaptions\HoloLensCaptions.csproj;x86

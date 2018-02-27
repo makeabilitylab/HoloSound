@@ -51,12 +51,12 @@ Temporary Items
 # Unity Files (copied from Web)
 # =========================
 
-/[Ll]ibrary/
-/[Tt]emp/
-/[Oo]bj/
-/[Bb]uild/
-/[Bb]uilds/
-/Assets/AssetStoreTools*
+/HoloLensCaptions/[Ll]ibrary/
+/HoloLensCaptions/[Tt]emp/
+/HoloLensCaptions/[Oo]bj/
+/HoloLensCaptions/[Bb]uild/
+/HoloLensCaptions/[Bb]uilds/
+/HoloLensCaptions/Assets/AssetStoreTools*
 
 # Visual Studio 2015 cache directory
 /.vs/
@@ -85,3 +85,8 @@ sysinfo.txt
 # Builds
 *.apk
 *.unitypackage
+*.bin
+*.dll
+
+# Logs
+*.log
