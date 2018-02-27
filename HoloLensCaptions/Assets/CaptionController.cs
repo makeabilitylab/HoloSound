@@ -20,22 +20,27 @@ namespace HoloToolkit.Unity
 
         GameObject MoveWithMeButton;
         GameObject AutoDistanceButton;
+        GameObject TextSizeButton;
         GameObject DepthDebugButton;
         GameObject DepthObject;
 
         public bool MoveWithMe = false;
         public int CaptionDistance = 0;
         public bool DepthDebug = false;
+        public int TextSize = 0;
 
 
         private bool settings_set = false;
 
-#if !UNITY_EDITOR
-            Uri uri = new Uri("ws://172.28.4.99:6502");
+        string last_packet = "";
+
+#if UNITY_EDITOR
+        private float last_fake_message_time = 0;
+
+#else
+        Uri uri = new Uri("ws://172.28.4.99:6502");
             private MessageWebSocket messageWebSocket;
 #endif
-
-        string message = "Hello! Captions are loading...";
 
         protected void Start()
         {
@@ -54,6 +59,12 @@ namespace HoloToolkit.Unity
             if (AutoDistanceButton == null)
             {
                 throw new Exception("Can't find AutoDistanceButton");
+            }
+
+            TextSizeButton = GameObject.Find("TextSizeButton");
+            if (TextSizeButton == null)
+            {
+                throw new Exception("Can't find TextSizeButton)");
             }
 
             DepthDebugButton = GameObject.Find("DepthDebugButton");
@@ -76,15 +87,46 @@ namespace HoloToolkit.Unity
 
         void Update()
         {
-            foreach (GameObject o in captions) {
-                o.GetComponent<GlassEarTagalong>().SetMessage(message);
+
+#if UNITY_EDITOR
+            if ((Time.time - last_fake_message_time) > 1)
+            {
+                last_fake_message_time = Time.time;
+
+                string next_packet = last_packet;
+
+                int nextword = UnityEngine.Random.Range(2, 6);
+
+                while(nextword > 0)
+                {
+                    nextword--;
+                    next_packet = next_packet + "a";
+                }
+
+                next_packet = next_packet + " ";
+                nextword = UnityEngine.Random.Range(2, 6);
+
+                while (nextword > 0)
+                {
+                    nextword--;
+                    next_packet = next_packet + "w";
+                }
+
+                if (next_packet.Length > 250)
+                {
+                    next_packet = next_packet.Substring(next_packet.Length - 250);
+                }
+
+                OnPacket(next_packet);
             }
+#endif
 
             if (!settings_set)
             {
                 MoveWithMeButton.GetComponent<TextMesh>().text = MoveWithMe ? "Captions move with you" : "Captions are fixed to world";
                 AutoDistanceButton.GetComponent<TextMesh>().text = (CaptionDistance==0) ? "Automatic depth" : ("Fixed depth: "+CaptionDistance+"m");
                 DepthDebugButton.GetComponent<TextMesh>().text = DepthDebug ? "Showing depth debug" : "Not showing depth debug";
+                TextSizeButton.GetComponent<TextMesh>().text = "Text size: " + (TextSize ==0 ? "small" : (TextSize == 1 ? "medium" : "large"));
 
                 gameObject.GetComponent<TranslateToCamera>().EnableMovement = MoveWithMe;
 
@@ -92,6 +134,31 @@ namespace HoloToolkit.Unity
 
                 settings_set = true;
             }
+        }
+
+        private void OnPacket(string message)
+        {
+            int overlap_length = message.Length;
+
+            print(message);
+
+            while(overlap_length > 0)
+            {
+                if (last_packet.EndsWith(message.Substring(0, overlap_length)))
+                {
+                    break;
+                }
+                overlap_length--;
+            }
+
+            string addition = message.Substring(overlap_length);
+
+            foreach (GameObject o in captions)
+            {
+                o.GetComponent<GlassEarTagalong>().AddText(addition);
+            }
+
+            last_packet = message;
         }
 
         public void OnInputClicked(InputModule.InputClickedEventData eventData)
@@ -102,6 +169,8 @@ namespace HoloToolkit.Unity
             {
                 MoveWithMe = !MoveWithMe;
                 settings_set = false;
+
+                eventData.Use();
                 return;
             }
 
@@ -127,6 +196,8 @@ namespace HoloToolkit.Unity
                 }
 
                 settings_set = false;
+
+                eventData.Use();
                 return;
             }
 
@@ -134,20 +205,31 @@ namespace HoloToolkit.Unity
             {
                 DepthDebug = !DepthDebug;
                 settings_set = false;
+
+                eventData.Use();
+                return;
+            }
+
+            if (targeted == TextSizeButton)
+            {
+                TextSize = (TextSize + 1) % 3;
+                settings_set = false;
+
+                eventData.Use();
                 return;
             }
 
             if (captions.Count > 1) {
                 GameObject focused = InputModule.FocusManager.Instance.TryGetFocusedObject(eventData);
-                print(focused);
-                eventData.Use();
-
+                
                 for (int i = captions.Count - 1; i >= 0; i--)
                 {
                     GameObject o = captions[i];
                     if (o.GetComponent<GlassEarTagalong>().frozen && targeted == o) {
                         captions.RemoveAt(i);
                         Destroy(o);
+
+                        eventData.Use();
                         return;
                     }
                 }
@@ -156,6 +238,8 @@ namespace HoloToolkit.Unity
             foreach (GameObject o in captions) {
                 if (!o.GetComponent<GlassEarTagalong>().frozen) {
                     o.GetComponent<GlassEarTagalong>().frozen = true;
+
+                    eventData.Use();
                     return;
                 }
             }
@@ -164,6 +248,9 @@ namespace HoloToolkit.Unity
             newO.GetComponent<GlassEarTagalong>().frozen = false;
             newO.transform.SetParent(transform);
             captions.Add(newO);
+
+            eventData.Use();
+            return;
         }
         
     #if !UNITY_EDITOR
@@ -195,8 +282,9 @@ namespace HoloToolkit.Unity
                 using (DataReader dataReader = args.GetDataReader())
                 {
                     dataReader.UnicodeEncoding = UnicodeEncoding.Utf8;
-                    message = dataReader.ReadString(dataReader.UnconsumedBufferLength);
+                    string message = dataReader.ReadString(dataReader.UnconsumedBufferLength);
                     System.Diagnostics.Debug.WriteLine("Message received from MessageWebSocket: " + message);
+                    OnPacket(message);
                     
                     //messageWebSocket.Dispose();
                 }

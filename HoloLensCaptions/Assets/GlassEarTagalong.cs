@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace HoloToolkit.Unity
@@ -40,6 +41,9 @@ namespace HoloToolkit.Unity
 
         public InputModule.InputManager input;
 
+        private List<string> lines;
+        private bool finishedLastWord = false;
+
         protected override void Start()
         {
             base.Start();
@@ -56,75 +60,78 @@ namespace HoloToolkit.Unity
             // detrimental effect on this Tagalong's desired behavior.
             // Disable that behavior here.
             EnforceDistance = false;
+
+            lines = new List<string>();
         }
 
         protected override void Update()
         {
             base.Update();
-            transform.localScale = new Vector3(1,1,1) * (transform.position - CameraCache.Main.transform.position).magnitude;
 
-            /*
-            bool targeted = IsTargeted();            
-
-            foreach (Transform child in transform)
+            float textSize = 0.0007F;
+            if (CaptionController.Instance.TextSize == 1)
             {
-                if (child.name == "Quad")
-                {
-                    child.gameObject.SetActive(targeted);
-                }
+                textSize = 0.001F;
             }
-            */
-        }
-
-        /*
-        public bool IsTargeted() {
-            if (!frozen) {
-                return false;
+            if (CaptionController.Instance.TextSize == 2)
+            {
+                textSize = 0.0013F;
             }
 
-            Transform cameraTransform = CameraCache.Main.transform;
-            Vector3 cameraPosition = cameraTransform.position;
+            GetComponent<TextMesh>().characterSize = textSize;
 
-            Vector3 normalizedWindowPos = cameraPosition + (transform.position - cameraPosition).normalized;
-            Vector3 normalizedTargetPos = cameraPosition + cameraTransform.forward;
-
-            Vector3 offset = normalizedWindowPos - normalizedTargetPos; 
-
-            return offset.magnitude < FrozenTargetingRadialDistance; 
+            transform.localScale = new Vector3(1,1,1) * (transform.position - CameraCache.Main.transform.position).magnitude;
         }
-        */
 
-        public void SetMessage(string message) {
-            TextMesh captionDisplay = GetComponent<TextMesh>();
-     
-            //Multi Line text without scroll
+        public void AddText(string message) {
+            string[] words = message.Split(null);
 
-            if (message.Length > 180)
-                message = message.Substring(message.Length - 180);
-            string textToDisplay = " ";
-            string[] words = message.Split(' ');
-            int count = 0;
+            if (words.Length == 0)
+            {
+                return;
+            }
+
+            string lastline = "";
+            if (lines.Count > 0)
+            {
+                lastline = lines[lines.Count - 1];
+                lines.RemoveAt(lines.Count - 1);
+            }
+
             foreach (var word in words)
             {
-                if (count <= 60)
+                if (word.Length > 0)
                 {
-                    count = count + word.Length + 1;
-                    textToDisplay = textToDisplay + word + " ";
+                    if (finishedLastWord && lastline.Length + word.Length > 50)
+                    {
+                        lines.Insert(lines.Count, lastline);
+                        lastline = "";
+                        finishedLastWord = false;
+                    }
+
+                    if (finishedLastWord)
+                    {
+                        lastline += " ";
+                    }
+                    lastline += word;
+
                 }
-                else
-                {
-                    textToDisplay = textToDisplay + "\n" + word + " ";
-                    count = word.Length + 1;
-                }
+                finishedLastWord = true;
             }
-            captionDisplay.text = textToDisplay;
-            /*
-             * Single Line Text
-            if (message.Length > 60) 
-                captionDisplay.text = message.Substring(message.Length - 60);
-            else
-                captionDisplay.text = message;
-             */
+
+            finishedLastWord = words[words.Length - 1] == "";
+
+            lines.Insert(lines.Count, lastline);
+
+            while(lines.Count > 2)
+            {
+                lines.RemoveAt(0);
+            }
+
+            TextMesh captionDisplay = GetComponent<TextMesh>();
+
+            captionDisplay.text = string.Join("\n", lines.ToArray());
+
         }
 
         /// <summary>
