@@ -44,7 +44,7 @@ namespace HoloToolkit.Unity
         private List<string> lines;
         private bool finishedLastWord = false;
 
-        public float lastHoverTime = 0;
+        public float lastHoverTime = -1.0f;
 
         protected override void Start()
         {
