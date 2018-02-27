@@ -44,6 +44,8 @@ namespace HoloToolkit.Unity
         private List<string> lines;
         private bool finishedLastWord = false;
 
+        public float lastHoverTime = 0;
+
         protected override void Start()
         {
             base.Start();
@@ -81,6 +83,14 @@ namespace HoloToolkit.Unity
             GetComponent<TextMesh>().characterSize = textSize;
 
             transform.localScale = new Vector3(1,1,1) * (transform.position - CameraCache.Main.transform.position).magnitude;
+
+            if (Time.time - lastHoverTime < 0.1)
+            {
+                GetComponent<TextMesh>().color = new Color(1F, 0.5F, 0.5F);
+            } else
+            {
+                GetComponent<TextMesh>().color = Color.white;
+            }
         }
 
         public void AddText(string message) {

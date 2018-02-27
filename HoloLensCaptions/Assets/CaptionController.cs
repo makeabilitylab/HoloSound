@@ -24,6 +24,8 @@ namespace HoloToolkit.Unity
         GameObject DepthDebugButton;
         GameObject DepthObject;
 
+        GameObject CursorObject;
+
         public bool MoveWithMe = false;
         public int CaptionDistance = 0;
         public bool DepthDebug = false;
@@ -48,6 +50,12 @@ namespace HoloToolkit.Unity
 
             captions = new List<GameObject>();
             captions.Add(transform.Find("CaptionsDisplay").gameObject);
+
+            CursorObject = GameObject.Find("DefaultCursor");
+            if (CursorObject == null)
+            {
+                throw new Exception("Can't find DefaultCursor");
+            }
 
             MoveWithMeButton = GameObject.Find("MoveWithMeButton");
             if (MoveWithMeButton == null)
@@ -134,6 +142,26 @@ namespace HoloToolkit.Unity
 
                 settings_set = true;
             }
+
+            InputModule.CursorStateEnum cursorState = CursorObject.GetComponent<InputModule.AnimatedCursor>().CursorState;
+            if (cursorState == InputModule.CursorStateEnum.Interact || cursorState == InputModule.CursorStateEnum.InteractHover || cursorState == InputModule.CursorStateEnum.Select)
+            {
+                InputModule.IPointingSource thisistoocomplex;
+                if (InputModule.FocusManager.Instance.TryGetSinglePointer(out thisistoocomplex) && captions.Count>1)
+                {
+                    GameObject focused = InputModule.FocusManager.Instance.GetFocusedObject(thisistoocomplex);
+
+                    for (int i = captions.Count - 1; i >= 0; i--)
+                    {
+                        GameObject o = captions[i];
+                        if (o.GetComponent<GlassEarTagalong>().frozen && focused == o)
+                        {
+                            o.GetComponent<GlassEarTagalong>().lastHoverTime = Time.time;
+                        }
+                    }
+                }
+            }
+
         }
 
         private void OnPacket(string message)
@@ -220,8 +248,6 @@ namespace HoloToolkit.Unity
             }
 
             if (captions.Count > 1) {
-                GameObject focused = InputModule.FocusManager.Instance.TryGetFocusedObject(eventData);
-                
                 for (int i = captions.Count - 1; i >= 0; i--)
                 {
                     GameObject o = captions[i];

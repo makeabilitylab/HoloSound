@@ -776,6 +776,7 @@ MonoBehaviour:
   MinimumTagalongDistance: 0.8
   frozen: 0
   input: {fileID: 48665786}
+  lastHoverTime: 0
 --- !u!1 &778667656
 GameObject:
   m_ObjectHideFlags: 0
