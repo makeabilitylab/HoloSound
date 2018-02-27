@@ -36,6 +36,10 @@ namespace HoloToolkit.Unity
 
         string last_packet = "";
 
+        string incoming_packet = "";
+        int incoming_packet_counter = 0;
+        int processed_incoming_packet_counter = 0;
+
 #if UNITY_EDITOR
         private float last_fake_message_time = 0;
 
@@ -127,6 +131,12 @@ namespace HoloToolkit.Unity
 
                 OnPacket(next_packet);
             }
+#else
+            if (incoming_packet_counter > processed_incoming_packet_counter) {
+                processed_incoming_packet_counter = incoming_packet_counter;
+                OnPacket(incoming_packet);
+            }
+
 #endif
 
             if (!settings_set)
@@ -167,8 +177,6 @@ namespace HoloToolkit.Unity
         private void OnPacket(string message)
         {
             int overlap_length = message.Length;
-
-            print(message);
 
             while(overlap_length > 0)
             {
@@ -278,8 +286,8 @@ namespace HoloToolkit.Unity
             eventData.Use();
             return;
         }
-        
-    #if !UNITY_EDITOR
+
+#if !UNITY_EDITOR
         private async void startWebSocket()
         {
 
@@ -308,9 +316,9 @@ namespace HoloToolkit.Unity
                 using (DataReader dataReader = args.GetDataReader())
                 {
                     dataReader.UnicodeEncoding = UnicodeEncoding.Utf8;
-                    string message = dataReader.ReadString(dataReader.UnconsumedBufferLength);
-                    System.Diagnostics.Debug.WriteLine("Message received from MessageWebSocket: " + message);
-                    OnPacket(message);
+                    incoming_packet_counter++;
+                    incoming_packet = dataReader.ReadString(dataReader.UnconsumedBufferLength);
+                    System.Diagnostics.Debug.WriteLine("Message received from MessageWebSocket: " + incoming_packet);
                     
                     //messageWebSocket.Dispose();
                 }
@@ -328,7 +336,7 @@ namespace HoloToolkit.Unity
             // Add additional code here to handle the WebSocket being closed.
         }
         // Use this for initialization
-    #endif
+#endif
 
     }
 }

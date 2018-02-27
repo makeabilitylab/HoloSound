@@ -94,12 +94,13 @@ namespace HoloToolkit.Unity
         }
 
         public void AddText(string message) {
-            string[] words = message.Split(null);
 
-            if (words.Length == 0)
+            if (message.Length == 0)
             {
                 return;
             }
+
+            string[] words = message.Split(null);
 
             string lastline = "";
             if (lines.Count > 0)
