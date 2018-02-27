@@ -113,7 +113,7 @@ namespace HoloToolkit.Unity
             {
                 if (word.Length > 0)
                 {
-                    if (finishedLastWord && lastline.Length + word.Length > 50)
+                    if (finishedLastWord && lastline.Length + word.Length > 60)
                     {
                         lines.Insert(lines.Count, lastline);
                         lastline = "";
@@ -134,7 +134,7 @@ namespace HoloToolkit.Unity
 
             lines.Insert(lines.Count, lastline);
 
-            while(lines.Count > 2)
+            while(lines.Count > 4)          // Number of Lines to Display
             {
                 lines.RemoveAt(0);
             }
