@@ -73,11 +73,11 @@ namespace HoloToolkit.Unity
             float textSize = 0.0007F;
             if (CaptionController.Instance.TextSize == 1)
             {
-                textSize = 0.001F;
+                textSize = 0.0009F;
             }
             if (CaptionController.Instance.TextSize == 2)
             {
-                textSize = 0.0013F;
+                textSize = 0.0012F;
             }
 
             GetComponent<TextMesh>().characterSize = textSize;
@@ -100,6 +100,8 @@ namespace HoloToolkit.Unity
                 return;
             }
 
+            message = message.Replace("\n", " ///NL///");
+
             string[] words = message.Split(null);
 
             string lastline = "";
@@ -109,11 +111,20 @@ namespace HoloToolkit.Unity
                 lines.RemoveAt(lines.Count - 1);
             }
 
-            foreach (var word in words)
+            foreach (var the_word in words)
             {
+                string word = the_word;
+                bool startsWithNewLine = false;
+
+                if (word.StartsWith("///NL///"))
+                {
+                    word = word.Substring(8);
+                    startsWithNewLine = true;
+                }
+
                 if (word.Length > 0)
                 {
-                    if (finishedLastWord && lastline.Length + word.Length > 60)
+                    if (startsWithNewLine || (finishedLastWord && lastline.Length + word.Length > CaptionController.Instance.TextLineLength))
                     {
                         lines.Insert(lines.Count, lastline);
                         lastline = "";
@@ -134,7 +145,7 @@ namespace HoloToolkit.Unity
 
             lines.Insert(lines.Count, lastline);
 
-            while(lines.Count > 4)          // Number of Lines to Display
+            while(lines.Count > CaptionController.Instance.TextLines)          // Number of Lines to Display
             {
                 lines.RemoveAt(0);
             }
