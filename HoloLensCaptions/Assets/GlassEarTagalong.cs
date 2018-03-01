@@ -100,6 +100,8 @@ namespace HoloToolkit.Unity
                 return;
             }
 
+            message = message.Replace(">>", "\n>>");
+            message = message.Replace("\n\n", "\n");
             message = message.Replace("\n", " ///NL///");
 
             string[] words = message.Split(null);
