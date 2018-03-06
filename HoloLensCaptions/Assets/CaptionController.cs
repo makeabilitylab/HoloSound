@@ -21,10 +21,12 @@ namespace HoloToolkit.Unity
         GameObject DepthObject;
 
         GameObject CursorObject;
+        GameObject CursorVisual;
 
         public bool MoveWithMe = false;
         public int CaptionDistance = 0;
         public bool DepthDebug = false;
+        public bool ShowCursor = true;
         public int TextSize = 0;
 
         public int TextLines = 2;
@@ -48,6 +50,7 @@ namespace HoloToolkit.Unity
             "TextSize",
             "TextLines",
             "TextLineLength",
+            "ShowCursor",
             "DepthDebug"
         };
         Dictionary<string, GameObject> buttons;
@@ -71,6 +74,12 @@ namespace HoloToolkit.Unity
             if (CursorObject == null)
             {
                 throw new Exception("Can't find DefaultCursor");
+            }
+
+            CursorVisual = GameObject.Find("CursorVisual");
+            if (CursorVisual == null)
+            {
+                throw new Exception("Can't find CursorVisual");
             }
 
             GameObject menu = GameObject.Find("Menu");
@@ -162,6 +171,7 @@ namespace HoloToolkit.Unity
                 buttons["MoveWithMe"].GetComponent<TextMesh>().text = MoveWithMe ? "Captions move with you" : "Captions are fixed to world";
                 buttons["AutoDistance"].GetComponent<TextMesh>().text = (CaptionDistance==0) ? "Automatic depth" : ("Fixed depth: "+CaptionDistance+"m");
                 buttons["DepthDebug"].GetComponent<TextMesh>().text = DepthDebug ? "Showing depth debug" : "Not showing depth debug";
+                buttons["ShowCursor"].GetComponent<TextMesh>().text = ShowCursor ? "Showing cursor" : "Not showing cursor";
                 buttons["TextSize"].GetComponent<TextMesh>().text = "Text size: " + (TextSize ==0 ? "small" : (TextSize == 1 ? "medium" : "large"));
                 buttons["TextLines"].GetComponent<TextMesh>().text = "Text lines: " + TextLines;
                 buttons["TextLineLength"].GetComponent<TextMesh>().text = "Line length: " + TextLineLength + " characters";
@@ -169,6 +179,7 @@ namespace HoloToolkit.Unity
                 gameObject.GetComponent<TranslateToCamera>().EnableMovement = MoveWithMe;
 
                 DepthObject.GetComponent<SpatialMappingRenderer>().enabled = DepthDebug;
+                CursorVisual.transform.localScale = ShowCursor ? new Vector3(0.03f, 0.03f, 0.03f) : new Vector3(0.0f, 0.0f, 0.0f);
 
                 settings_set = true;
             }
@@ -244,6 +255,9 @@ namespace HoloToolkit.Unity
                             break;
                         case "DepthDebug":
                             DepthDebug = !DepthDebug;
+                            break;
+                        case "ShowCursor":
+                            ShowCursor = !ShowCursor;
                             break;
                         case "AutoDistance":
                             if (CaptionDistance == 0)
