@@ -795,7 +795,7 @@ MonoBehaviour:
   PositionUpdateSpeed: 9.8
   SmoothMotion: 0
   SmoothingFactor: 0.75
-  MaxRadialDistance: 0.02
+  MaxRadialDistance: 0.08
   FrozenTargetingRadialDistance: 0.03
   HorizontalRayCount: 5
   VerticalRayCount: 3
