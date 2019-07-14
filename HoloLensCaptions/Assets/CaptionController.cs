@@ -59,7 +59,7 @@ namespace HoloToolkit.Unity
         private float last_fake_message_time = 0;
 
 #else
-        Uri uri = new Uri("ws://172.28.4.99:6502");
+        Uri uri = new Uri("ws://128.208.49.41:6502");
             private MessageWebSocket messageWebSocket;
 #endif
 
