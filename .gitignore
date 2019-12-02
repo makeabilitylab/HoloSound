@@ -86,7 +86,6 @@ sysinfo.txt
 *.apk
 *.unitypackage
 *.bin
-*.dll
 
 # Logs
 *.log
