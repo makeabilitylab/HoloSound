@@ -301,17 +301,17 @@ namespace HoloToolkit.Unity
             switch (type)
             {
                 case PlayerSettings.WSAImageType.PackageLogo:
-                case PlayerSettings.WSAImageType.StoreTileLogo:
-                case PlayerSettings.WSAImageType.StoreTileSmallLogo:
-                case PlayerSettings.WSAImageType.StoreSmallTile:
-                case PlayerSettings.WSAImageType.StoreLargeTile:
+                //case PlayerSettings.WSAImageType.StoreTileLogo:
+                //case PlayerSettings.WSAImageType.StoreTileSmallLogo:
+                //case PlayerSettings.WSAImageType.StoreSmallTile:
+                //case PlayerSettings.WSAImageType.StoreLargeTile:
                 case PlayerSettings.WSAImageType.UWPSquare44x44Logo:
                 case PlayerSettings.WSAImageType.UWPSquare71x71Logo:
                 case PlayerSettings.WSAImageType.UWPSquare150x150Logo:
                 case PlayerSettings.WSAImageType.UWPSquare310x310Logo:
                     return _newAppIconPath;
                 case PlayerSettings.WSAImageType.SplashScreenImage:
-                case PlayerSettings.WSAImageType.StoreTileWideLogo:
+                //case PlayerSettings.WSAImageType.StoreTileWideLogo:
                 case PlayerSettings.WSAImageType.UWPWide310x150Logo:
                     if (scale != PlayerSettings.WSAImageScale.Target16 &&
                         scale != PlayerSettings.WSAImageScale.Target24 &&
@@ -325,11 +325,11 @@ namespace HoloToolkit.Unity
                     {
                         return _newAppIconPath;
                     }
-                case PlayerSettings.WSAImageType.PhoneAppIcon:
-                case PlayerSettings.WSAImageType.PhoneSmallTile:
-                case PlayerSettings.WSAImageType.PhoneMediumTile:
-                case PlayerSettings.WSAImageType.PhoneWideTile:
-                case PlayerSettings.WSAImageType.PhoneSplashScreen:
+                //case PlayerSettings.WSAImageType.PhoneAppIcon:
+                //case PlayerSettings.WSAImageType.PhoneSmallTile:
+                //case PlayerSettings.WSAImageType.PhoneMediumTile:
+                //case PlayerSettings.WSAImageType.PhoneWideTile:
+                //case PlayerSettings.WSAImageType.PhoneSplashScreen:
                     return string.Empty;
                 default:
                     throw new ArgumentOutOfRangeException("type", type, null);
@@ -363,19 +363,19 @@ namespace HoloToolkit.Unity
             {
                 case PlayerSettings.WSAImageType.PackageLogo:
                     return CreateSquareSize(50, scaleFactor);
-                case PlayerSettings.WSAImageType.StoreTileLogo:
+                //case PlayerSettings.WSAImageType.StoreTileLogo:
                     return CreateSquareSize(150, scaleFactor);
-                case PlayerSettings.WSAImageType.StoreTileSmallLogo:
+                //case PlayerSettings.WSAImageType.StoreTileSmallLogo:
                     return CreateSquareSize(30, scaleFactor);
-                case PlayerSettings.WSAImageType.StoreSmallTile:
+               // case PlayerSettings.WSAImageType.StoreSmallTile:
                     return CreateSquareSize(70, scaleFactor);
-                case PlayerSettings.WSAImageType.StoreLargeTile:
+                //case PlayerSettings.WSAImageType.StoreLargeTile:
                     return CreateSquareSize(310, scaleFactor);
-                case PlayerSettings.WSAImageType.PhoneAppIcon:
+               // case PlayerSettings.WSAImageType.PhoneAppIcon:
                     return CreateSquareSize(44, scaleFactor);
-                case PlayerSettings.WSAImageType.PhoneSmallTile:
+               // case PlayerSettings.WSAImageType.PhoneSmallTile:
                     return CreateSquareSize(71, scaleFactor);
-                case PlayerSettings.WSAImageType.PhoneMediumTile:
+                //case PlayerSettings.WSAImageType.PhoneMediumTile:
                     return CreateSquareSize(150, scaleFactor);
                 case PlayerSettings.WSAImageType.UWPSquare44x44Logo:
                     return CreateSquareSize(44, scaleFactor);
@@ -387,13 +387,13 @@ namespace HoloToolkit.Unity
                     return CreateSquareSize(310, scaleFactor);
 
                 // WIDE 31:15
-                case PlayerSettings.WSAImageType.PhoneWideTile:
-                case PlayerSettings.WSAImageType.StoreTileWideLogo:
+               // case PlayerSettings.WSAImageType.PhoneWideTile:
+               // case PlayerSettings.WSAImageType.StoreTileWideLogo:
                 case PlayerSettings.WSAImageType.UWPWide310x150Logo:
                     return CreateSize(new Vector2(310, 150), scaleFactor);
                 case PlayerSettings.WSAImageType.SplashScreenImage:
                     return CreateSize(new Vector2(620, 300), scaleFactor);
-                case PlayerSettings.WSAImageType.PhoneSplashScreen:
+               // case PlayerSettings.WSAImageType.PhoneSplashScreen:
                 default:
                     var size = CreateSquareSize(0, scaleFactor);
 

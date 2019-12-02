@@ -1,8 +1,14 @@
-using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Speech.V1;
+using Grpc.Auth;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using static Google.Api.Gax.Expiration;
 using UnityEngine.XR.WSA;
+using UnityEngine;
 
 #if !UNITY_EDITOR
 using System.Diagnostics;
@@ -42,6 +48,8 @@ namespace HoloToolkit.Unity
         int incoming_packet_counter = 0;
         int processed_incoming_packet_counter = 0;
 
+        private Thread speechThread;
+
 
         string[] button_names =
         {
@@ -62,6 +70,107 @@ namespace HoloToolkit.Unity
         Uri uri = new Uri("ws://128.208.49.41:6502");
             private MessageWebSocket messageWebSocket;
 #endif
+        public void StartSpeechRecognition()
+        {
+            print("!!!");
+            var speech = SpeechClient.Create();
+            var response = speech.Recognize(new RecognitionConfig()
+            {
+                Encoding = RecognitionConfig.Types.AudioEncoding.Linear16,
+                SampleRateHertz = 8000,
+                LanguageCode = "en",
+            }, RecognitionAudio.FromFile("audio.raw"));
+            print(response);
+            foreach (var result in response.Results)
+            {
+                foreach (var alternative in result.Alternatives)
+                {
+                    print(alternative.Transcript);
+                }
+            }
+        }
+
+        async Task<object> StreamingMicRecognizeAsync(int seconds)
+        {
+            print(">>");
+            Google.Api.Gax.Expiration exp = Google.Api.Gax.Expiration.FromTimeout(new System.TimeSpan(0, 0, 30));
+            Google.Api.Gax.Grpc.CallTiming timing = Google.Api.Gax.Grpc.CallTiming.FromExpiration(exp);
+            Google.Api.Gax.Grpc.CallSettings setting = Google.Api.Gax.Grpc.CallSettings.FromCallTiming(timing);
+            //var speech = SpeechClient.Create(channel);
+            var speech = SpeechClient.Create();
+            var streamingCall = speech.StreamingRecognize(setting);
+            
+            // Write the initial request with the config.
+            await streamingCall.WriteAsync(
+                new StreamingRecognizeRequest()
+                {
+                    StreamingConfig = new StreamingRecognitionConfig()
+                    {
+                        Config = new RecognitionConfig()
+                        {
+                            Encoding =
+                            RecognitionConfig.Types.AudioEncoding.Linear16,
+                            SampleRateHertz = 16000,
+                            LanguageCode = "en",
+                        },
+                        InterimResults = true,
+                    }
+                });
+            // Print responses as they arrive.
+            Task printResponses = Task.Run(async () =>
+            {
+                while (await streamingCall.ResponseStream.MoveNext(
+                    default(CancellationToken)))
+                {
+                    foreach (var result in streamingCall.ResponseStream
+                        .Current.Results)
+                    {
+                        foreach (var alternative in result.Alternatives)
+                        {
+                            print(alternative.Transcript);
+                            Dispatcher.Instance.Invoke(() => OnPacket(alternative.Transcript));
+                        }
+                    }
+                }
+            });
+            // Read from the microphone and stream to API.
+            object writeLock = new object();
+            bool writeMore = true;
+            var waveIn = new NAudio.Wave.WaveInEvent();
+            waveIn.DeviceNumber = 0;
+            waveIn.WaveFormat = new NAudio.Wave.WaveFormat(16000, 1);
+            waveIn.DataAvailable +=
+                (object sender, NAudio.Wave.WaveInEventArgs args) =>
+                {
+                    lock (writeLock)
+                    {
+                        if (!writeMore)
+                        {
+                            return;
+                        }
+
+                        streamingCall.WriteAsync(
+                            new StreamingRecognizeRequest()
+                            {
+                                AudioContent = Google.Protobuf.ByteString
+                                    .CopyFrom(args.Buffer, 0, args.BytesRecorded)
+                            }).Wait();
+                    }
+                };
+            waveIn.StartRecording();
+            print("Speak now.");
+            await Task.Delay(TimeSpan.FromSeconds(seconds));
+            // Stop recording and shut down.
+            waveIn.StopRecording();
+            lock (writeLock)
+            {
+                writeMore = false;
+            }
+
+            await streamingCall.WriteCompleteAsync();
+            await printResponses;
+            return 0;
+        }
 
         protected void Start()
         {
@@ -119,15 +228,24 @@ namespace HoloToolkit.Unity
             }
 
             System.Diagnostics.Debug.WriteLine("Web socket script started.");
-            #if !UNITY_EDITOR
+#if !UNITY_EDITOR
             startWebSocket();
-            #endif
+#endif
+            speechThread = new Thread(SpeechThreadFnc);
+            speechThread.Start();
+            
+        }
+
+        private void SpeechThreadFnc()
+        {
+            Task.Run(async () => await StreamingMicRecognizeAsync(30)).GetAwaiter().GetResult();
         }
 
         void Update()
         {
 
 #if UNITY_EDITOR
+
             if ((Time.time - last_fake_message_time) > 1)
             {
                 last_fake_message_time = Time.time;
@@ -156,7 +274,7 @@ namespace HoloToolkit.Unity
                     next_packet = next_packet.Substring(next_packet.Length - 250);
                 }
 
-                OnPacket(next_packet);
+                //OnPacket(next_packet);
             }
 #else
             if (incoming_packet_counter > processed_incoming_packet_counter) {
@@ -334,6 +452,8 @@ namespace HoloToolkit.Unity
             eventData.Use();
             return;
         }
+
+        
 
 #if !UNITY_EDITOR
         private async void startWebSocket()
