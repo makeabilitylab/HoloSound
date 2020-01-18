@@ -1,16 +1,12 @@
-using Google.Apis.Auth.OAuth2;
-using Google.Cloud.Speech.V1;
-using Grpc.Auth;
-using Grpc.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using static Google.Api.Gax.Expiration;
 using UnityEngine.XR.WSA;
 using UnityEngine;
 
+using Microsoft.CognitiveServices.Speech.Audio;
 using Microsoft.CognitiveServices.Speech;
 
 #if !UNITY_EDITOR
@@ -24,10 +20,8 @@ namespace HoloToolkit.Unity
     public class CaptionController : Singleton<CaptionController>, InputModule.IInputClickHandler
     {
         // ---------------------------//
-        private object threadLocker = new object();
         private bool waitingForReco;
         private string message;
-        private bool micPermissionGranted = false;
         //
 
         public InputModule.InputManager input;
@@ -73,6 +67,25 @@ namespace HoloToolkit.Unity
         };
         Dictionary<string, GameObject> buttons;
 
+
+        private bool micPermissionGranted = false;
+
+        // Used to show live messages on screen, must be locked to avoid threading deadlocks since
+        // the recognition events are raised in a separate thread
+        private string recognizedString = "";
+        private string errorString = "";
+        private System.Object threadLocker = new System.Object();
+
+        // Speech recognition key, required
+        [Tooltip("Connection string to Cognitive Services Speech.")]
+        public string SpeechServiceAPIKey = "92c0ecbca76742ba9b52ebf14d91efbc";
+        [Tooltip("Region for your Cognitive Services Speech instance (must match the key).")]
+        public string SpeechServiceRegion = "westus";
+
+        // Cognitive Services Speech objects used for Speech Recognition
+        private SpeechRecognizer recognizer;
+        string fromLanguage = "en-us";
+
 #if UNITY_EDITOR
         private float last_fake_message_time = 0;
 
@@ -81,182 +94,13 @@ namespace HoloToolkit.Unity
             private MessageWebSocket messageWebSocket;
 #endif
 
-        public void respondToInput()
-        {
-            OnPacket("test");
-        }
-
-        public async void MSRec()
-        {
-            // Creates an instance of a speech config with specified subscription key and service region.
-            // Replace with your own subscription key and service region (e.g., "westus").
-            var config = SpeechConfig.FromSubscription("92c0ecbca76742ba9b52ebf14d91efbc", "westus");
-
-            // Make sure to dispose the recognizer after use!
-            using (var recognizer = new SpeechRecognizer(config))
-            {
-                lock (threadLocker)
-                {
-                    waitingForReco = true;
-                }
-
-                // Starts speech recognition, and returns after a single utterance is recognized. The end of a
-                // single utterance is determined by listening for silence at the end or until a maximum of 15
-                // seconds of audio is processed.  The task returns the recognition text as result.
-                // Note: Since RecognizeOnceAsync() returns only a single utterance, it is suitable only for single
-                // shot recognition like command or query.
-                // For long-running multi-utterance recognition, use StartContinuousRecognitionAsync() instead.
-                var result = await recognizer.RecognizeOnceAsync().ConfigureAwait(false);
-
-                // Checks result.
-                string newMessage = string.Empty;
-                if (result.Reason == ResultReason.RecognizedSpeech)
-                {
-                    newMessage = result.Text;
-                }
-                else if (result.Reason == ResultReason.NoMatch)
-                {
-                    newMessage = "NOMATCH: Speech could not be recognized.";
-                }
-                else if (result.Reason == ResultReason.Canceled)
-                {
-                    var cancellation = CancellationDetails.FromResult(result);
-                    newMessage = $"CANCELED: Reason={cancellation.Reason} ErrorDetails={cancellation.ErrorDetails}";
-                }
-
-                lock (threadLocker)
-                {
-                    message = newMessage;
-                    Dispatcher.Instance.Invoke(() => OnPacket(message));
-                    waitingForReco = false;
-                }
-            }
-        }
-
-        public void StartSpeechRecognition()
-        {
-            print("!!!");
-            var speech = SpeechClient.Create();
-            var response = speech.Recognize(new RecognitionConfig()
-            {
-                Encoding = RecognitionConfig.Types.AudioEncoding.Linear16,
-                SampleRateHertz = 8000,
-                LanguageCode = "en",
-            }, RecognitionAudio.FromFile("audio.raw"));
-            print(response);
-            foreach (var result in response.Results)
-            {
-                foreach (var alternative in result.Alternatives)
-                {
-                    print(alternative.Transcript);
-                }
-            }
-        }
-
-        async Task<object> StreamingMicRecognizeAsync(int seconds)
-        {
-            print(">>");
-
-            String authJson = @"{
-                  ""type"": ""service_account"",
-                  ""project_id"": ""speechrecognitio-1573892551445"",
-                  ""private_key_id"": ""b88a7d3dd18b3845061b81dc7688575e6051b2ce"",
-                  ""private_key"": ""-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDcHGnLzLT4iQTX\nBsCGxi7m8lskngRxPh+KRNEsnlHBVP2RSeFeZbkVVYLP/HgFcHNhrugCMMrXFumN\nDE1+53n0HxOM2LCpAy2tSKdiMMA5xOS8prU9/brAMdqxo89nSizemExpr03ld56M\nUghGCuPmor6SzHoSOkmAYHMG1ozEgGza3imOtTYZRWA8oGFuKQSanZzgZLX6KT+6\ncRY0TUn7hNygmB1uslfEmzCccvRO25xeXFDRluYvUAqsQJvDuqYofPpcVvQzIIF2\nKap6M1xYVX4u3MICG49zuwOhYO8pModZWjrLfBg4fIaZaQtwja96Vr/CRAQmRqCL\nO33F/QyVAgMBAAECggEADcrkq5Xy68qqOE8pVp3/PQ7dZziqTpj19lQZnLzO+AO7\nX+n2lVO1JVZrvAdgqKFDRFEReLxV+Y8V/iCnOoHcF9AFXu4KeTdvGqH9hcmdl1Z0\nft3IvaRd720wUbFSGHGCyPACLx0tDxP6e2XTNDsPzNlQgne4WSwN2bLcLQbaC0tj\nG/sxSJFMeEKRT6SWcOZO/7CdNX9ojYtLQ8++s86UACapTVYslIGa+fyBHSU24PkR\nqqlT1MAzLpgM3wQ+XwJu1C7n4VRAVDFBY9TaQ7knzGyD55fSf3Br/NKyiZqt2lUU\nRfMTW9PRbB1h6TUvueXV9xFx15RayrtVCaH1BRGcgQKBgQDveqt+YiuROo+bMDIn\n2ksDSo8F7MXYErIlaI8PziBDP3oU7iI9ZFSM0wJqcaeflin9Me+Exf2JMrhYCDWR\noFL3Kt5NT9j5Cl/HHt5t3YI5lnk8XJ6ERUr7T2bdLHDfGrfRZIXDSh88bphy3igJ\nGBoPKDd/hi6lPfNoQb8MCo/mXwKBgQDrS7DYJ7jfdAxHkgwZprAhhUajNFSD/tSk\nWYIeHYj3MBLVvnZBHsKQChDEkXb3Pq53C32Dr+tSFyebQo+GR0LqFwdQ8M5Vupt5\n248tyAgwX4N3weLZNlDdH8GSaCUgCPoh/Fne+JqJV0OeSsUbVnFOug4SdOGwwGEy\nqHffrGJpiwKBgQC2z7EMmIpjog2wTRlsnNJ4n7kQr8/UA2mk7u2PBi5Qx6s9QRA4\nR1fX7NjCQyLPy4UgOLd8ZtwFmQdqhFHIalgLQNlUsWiTrFyzF5h6zAa2SW0hLB8C\nIBd+Qv3mRx+e4LmECjWmf/XaXx7XSUnMr25tNakwG1GOaP1gEBh0a7ewBwKBgCl+\nJohnsNVO3J9+ZL3dRDAVFZjQMJs6Q/tbgXOYF8AnbRreRHJFX2ARNlXDpSwClLeP\nginHywKl7KkXesHeLTGkr/iZDnnVt3csvboADVmibkefHEbbqjTkVblgvjNBAgMe\nQibsxiu0BMuUOeARRVfxvWuJywblVf6d8M2z04LzAoGBAK/4qD9XJQeJoM/Wnok/\nryRY1e3z8wEKFHWwX95pD/AUi4D6hr+hWpnonkYSIcZYPs6dX29wPf+zaWkC2kjl\nbipwd7+7EW4EBSXeKhCOtCNxHrnoOKjqyrkQwdVtD9ZUDKgSqZmVMG7LGKQGGlqw\nrFtSyj5BoOP8KNwhWmyCe/Ak\n-----END PRIVATE KEY-----\n"",
-                  ""client_email"": ""starting-account-p42m0dijqnfd@speechrecognitio-1573892551445.iam.gserviceaccount.com"",
-                  ""client_id"": ""108519999435165912271"",
-                  ""auth_uri"": ""https://accounts.google.com/o/oauth2/auth"",
-                  ""token_uri"": ""https://oauth2.googleapis.com/token"",
-                  ""auth_provider_x509_cert_url"": ""https://www.googleapis.com/oauth2/v1/certs"",
-                  ""client_x509_cert_url"": ""https://www.googleapis.com/robot/v1/metadata/x509/starting-account-p42m0dijqnfd%40speechrecognitio-1573892551445.iam.gserviceaccount.com""
-            }";
-
-            Google.Api.Gax.Expiration exp = Google.Api.Gax.Expiration.FromTimeout(new System.TimeSpan(0, 0, 30));
-            Google.Api.Gax.Grpc.CallTiming timing = Google.Api.Gax.Grpc.CallTiming.FromExpiration(exp);
-            Google.Api.Gax.Grpc.CallSettings setting = Google.Api.Gax.Grpc.CallSettings.FromCallTiming(timing);
-            GoogleCredential cred = GoogleCredential.FromJson(authJson);
-
-            Channel channel = new Channel(SpeechClient.DefaultEndpoint.Host, SpeechClient.DefaultEndpoint.Port, cred.ToChannelCredentials());
-
-            var speech = SpeechClient.Create(channel);
-
-            var streamingCall = speech.StreamingRecognize(setting);
-            
-            // Write the initial request with the config.
-            await streamingCall.WriteAsync(
-                new StreamingRecognizeRequest()
-                {
-                    StreamingConfig = new StreamingRecognitionConfig()
-                    {
-                        Config = new RecognitionConfig()
-                        {
-                            Encoding =
-                            RecognitionConfig.Types.AudioEncoding.Linear16,
-                            SampleRateHertz = 16000,
-                            LanguageCode = "en",
-                        },
-                        InterimResults = true,
-                    }
-                });
-            // Print responses as they arrive.
-            Task printResponses = Task.Run(async () =>
-            {
-                while (await streamingCall.ResponseStream.MoveNext(
-                    default(CancellationToken)))
-                {
-                    foreach (var result in streamingCall.ResponseStream
-                        .Current.Results)
-                    {
-                        foreach (var alternative in result.Alternatives)
-                        {
-                            print(alternative.Transcript);
-                            Dispatcher.Instance.Invoke(() => OnPacket(alternative.Transcript));
-                        }
-                    }
-                }
-            });
-            // Read from the microphone and stream to API.
-            object writeLock = new object();
-            bool writeMore = true;
-            var waveIn = new NAudio.Wave.WaveInEvent();
-            waveIn.DeviceNumber = 0;
-            waveIn.WaveFormat = new NAudio.Wave.WaveFormat(16000, 1);
-            waveIn.DataAvailable +=
-                (object sender, NAudio.Wave.WaveInEventArgs args) =>
-                {
-                    lock (writeLock)
-                    {
-                        if (!writeMore)
-                        {
-                            return;
-                        }
-
-                        streamingCall.WriteAsync(
-                            new StreamingRecognizeRequest()
-                            {
-                                AudioContent = Google.Protobuf.ByteString
-                                    .CopyFrom(args.Buffer, 0, args.BytesRecorded)
-                            }).Wait();
-                    }
-                };
-            waveIn.StartRecording();
-            OnPacket("Speak now.");
-            await Task.Delay(TimeSpan.FromSeconds(seconds));
-            // Stop recording and shut down.
-            waveIn.StopRecording();
-            lock (writeLock)
-            {
-                writeMore = false;
-            }
-
-            await streamingCall.WriteCompleteAsync();
-            await printResponses;
-            return 0;
-        }
-
         protected void Start()
         {
-            Invoke("MSRec", 3);
+            Invoke("StartContinuous", 3);
+
             input.AddGlobalListener(gameObject);
+
+            micPermissionGranted = true;
 
             captions = new List<GameObject>();
             captions.Add(transform.Find("CaptionsDisplay").gameObject);
@@ -320,10 +164,6 @@ namespace HoloToolkit.Unity
 
     }
 
-    private void SpeechThreadFnc()
-        {
-            Task.Run(async () => await StreamingMicRecognizeAsync(30)).GetAwaiter().GetResult();
-        }
 
         void Update()
         {
@@ -414,6 +254,11 @@ namespace HoloToolkit.Unity
                         }
                     }
                 }
+            }
+
+            lock (threadLocker)
+            {
+                OnPacket(recognizedString);
             }
 
         }
@@ -537,7 +382,225 @@ namespace HoloToolkit.Unity
             return;
         }
 
-        
+        public void respondToInput()
+        {
+            OnPacket("test");
+        }
+
+        /*
+        public async void MSRec()
+        {
+            // Creates an instance of a speech config with specified subscription key and service region.
+            // Replace with your own subscription key and service region (e.g., "westus").
+            var config = SpeechConfig.FromSubscription("92c0ecbca76742ba9b52ebf14d91efbc", "westus");
+
+            // Make sure to dispose the recognizer after use!
+            using (var recognizer = new SpeechRecognizer(config))
+            {
+                lock (threadLocker)
+                {
+                    waitingForReco = true;
+                }
+
+                // Starts speech recognition, and returns after a single utterance is recognized. The end of a
+                // single utterance is determined by listening for silence at the end or until a maximum of 15
+                // seconds of audio is processed.  The task returns the recognition text as result.
+                // Note: Since RecognizeOnceAsync() returns only a single utterance, it is suitable only for single
+                // shot recognition like command or query.
+                // For long-running multi-utterance recognition, use StartContinuousRecognitionAsync() instead.
+                var result = await recognizer.RecognizeOnceAsync().ConfigureAwait(false);
+
+                // Checks result.
+                string newMessage = string.Empty;
+                if (result.Reason == ResultReason.RecognizedSpeech)
+                {
+                    newMessage = result.Text;
+                }
+                else if (result.Reason == ResultReason.NoMatch)
+                {
+                    newMessage = "NOMATCH: Speech could not be recognized.";
+                }
+                else if (result.Reason == ResultReason.Canceled)
+                {
+                    var cancellation = CancellationDetails.FromResult(result);
+                    newMessage = $"CANCELED: Reason={cancellation.Reason} ErrorDetails={cancellation.ErrorDetails}";
+                }
+
+                lock (threadLocker)
+                {
+                    message = newMessage;
+                    Dispatcher.Instance.Invoke(() => OnPacket(message));
+                    waitingForReco = false;
+                }
+            }
+        }
+        */
+
+        /// <summary>
+        /// Attach to button component used to launch continuous recognition (with or without translation)
+        /// </summary>
+        public void StartContinuous()
+        {
+            errorString = "";
+            if (micPermissionGranted)
+            {
+                StartContinuousRecognition();
+            }
+            else
+            {
+                recognizedString = "This app cannot function without access to the microphone.";
+                errorString = "ERROR: Microphone access denied.";
+                UnityEngine.Debug.LogFormat(errorString);
+            }
+        }
+
+        /// <summary>
+        /// Initiate continuous speech recognition from the default microphone.
+        /// </summary>
+        private async void StartContinuousRecognition()
+        {
+            UnityEngine.Debug.LogFormat("Starting Continuous Speech Recognition.");
+            CreateSpeechRecognizer();
+
+            if (recognizer != null)
+            {
+                UnityEngine.Debug.LogFormat("Starting Speech Recognizer.");
+                await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
+
+                recognizedString = "Speech Recognizer is now running.";
+                UnityEngine.Debug.LogFormat("Speech Recognizer is now running.");
+            }
+            UnityEngine.Debug.LogFormat("Start Continuous Speech Recognition exit");
+        }
+
+        /// <summary>
+        /// Creates a class-level Speech Recognizer for a specific language using Azure credentials
+        /// and hooks-up lifecycle & recognition events
+        /// </summary>
+        void CreateSpeechRecognizer()
+        {
+            if (SpeechServiceAPIKey.Length == 0 || SpeechServiceAPIKey == String.Empty)
+            {
+                recognizedString = "You forgot to obtain Cognitive Services Speech credentials and inserting them in this app." + Environment.NewLine +
+                                   "See the README file and/or the instructions in the Awake() function for more info before proceeding.";
+                errorString = "ERROR: Missing service credentials";
+                UnityEngine.Debug.LogFormat(errorString);
+                return;
+            }
+            UnityEngine.Debug.LogFormat("Creating Speech Recognizer.");
+            recognizedString = "Initializing speech recognition, please wait...";
+
+            if (recognizer == null)
+            {
+                SpeechConfig config = SpeechConfig.FromSubscription("92c0ecbca76742ba9b52ebf14d91efbc", "westus");
+                config.SpeechRecognitionLanguage = fromLanguage;
+                recognizer = new SpeechRecognizer(config);
+
+                if (recognizer != null)
+                {
+                    // Subscribes to speech events.
+                    recognizer.Recognizing += RecognizingHandler;
+                    recognizer.Recognized += RecognizedHandler;
+                    recognizer.SpeechStartDetected += SpeechStartDetectedHandler;
+                    recognizer.SpeechEndDetected += SpeechEndDetectedHandler;
+                    recognizer.Canceled += CanceledHandler;
+                    recognizer.SessionStarted += SessionStartedHandler;
+                    recognizer.SessionStopped += SessionStoppedHandler;
+                }
+            }
+            UnityEngine.Debug.LogFormat("CreateSpeechRecognizer exit");
+        }
+
+    #region Speech Recognition event handlers
+        private void SessionStartedHandler(object sender, SessionEventArgs e)
+        {
+            UnityEngine.Debug.LogFormat($"\n    Session started event. Event: {e.ToString()}.");
+        }
+
+        private void SessionStoppedHandler(object sender, SessionEventArgs e)
+        {
+            UnityEngine.Debug.LogFormat($"\n    Session event. Event: {e.ToString()}.");
+            UnityEngine.Debug.LogFormat($"Session Stop detected. Stop the recognition.");
+        }
+
+        private void SpeechStartDetectedHandler(object sender, RecognitionEventArgs e)
+        {
+            UnityEngine.Debug.LogFormat($"SpeechStartDetected received: offset: {e.Offset}.");
+        }
+
+        private void SpeechEndDetectedHandler(object sender, RecognitionEventArgs e)
+        {
+            UnityEngine.Debug.LogFormat($"SpeechEndDetected received: offset: {e.Offset}.");
+            UnityEngine.Debug.LogFormat($"Speech end detected.");
+        }
+
+        // "Recognizing" events are fired every time we receive interim results during recognition (i.e. hypotheses)
+        private void RecognizingHandler(object sender, SpeechRecognitionEventArgs e)
+        {
+            if (e.Result.Reason == ResultReason.RecognizingSpeech)
+            {
+                UnityEngine.Debug.LogFormat($"HYPOTHESIS: Text={e.Result.Text}");
+                lock (threadLocker)
+                {
+                    recognizedString = $"HYPOTHESIS: {Environment.NewLine}{e.Result.Text}";
+                }
+            }
+        }
+
+        // "Recognized" events are fired when the utterance end was detected by the server
+        private void RecognizedHandler(object sender, SpeechRecognitionEventArgs e)
+        {
+            if (e.Result.Reason == ResultReason.RecognizedSpeech)
+            {
+                UnityEngine.Debug.LogFormat($"RECOGNIZED: Text={e.Result.Text}");
+                lock (threadLocker)
+                {
+                    recognizedString = $"RESULT: {Environment.NewLine}{e.Result.Text}";
+                }
+            }
+            else if (e.Result.Reason == ResultReason.NoMatch)
+            {
+                UnityEngine.Debug.LogFormat($"NOMATCH: Speech could not be recognized.");
+            }
+        }
+
+        // "Canceled" events are fired if the server encounters some kind of error.
+        // This is often caused by invalid subscription credentials.
+        private void CanceledHandler(object sender, SpeechRecognitionCanceledEventArgs e)
+        {
+            UnityEngine.Debug.LogFormat($"CANCELED: Reason={e.Reason}");
+
+            errorString = e.ToString();
+            if (e.Reason == CancellationReason.Error)
+            {
+                UnityEngine.Debug.LogFormat($"CANCELED: ErrorDetails={e.ErrorDetails}");
+                UnityEngine.Debug.LogFormat($"CANCELED: Did you update the subscription info?");
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// Stops the recognition on the speech recognizer or translator as applicable.
+        /// Important: Unhook all events & clean-up resources.
+        /// </summary>
+        public async void StopRecognition()
+        {
+            if (recognizer != null)
+            {
+                await recognizer.StopContinuousRecognitionAsync().ConfigureAwait(false);
+                recognizer.Recognizing -= RecognizingHandler;
+                recognizer.Recognized -= RecognizedHandler;
+                recognizer.SpeechStartDetected -= SpeechStartDetectedHandler;
+                recognizer.SpeechEndDetected -= SpeechEndDetectedHandler;
+                recognizer.Canceled -= CanceledHandler;
+                recognizer.SessionStarted -= SessionStartedHandler;
+                recognizer.SessionStopped -= SessionStoppedHandler;
+                recognizer.Dispose();
+                recognizer = null;
+                recognizedString = "Speech Recognizer is now stopped.";
+                UnityEngine.Debug.LogFormat("Speech Recognizer is now stopped.");
+            }
+        }
 
 #if !UNITY_EDITOR
         private async void startWebSocket()
