@@ -561,7 +561,7 @@ PlayerSettings:
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
   metroPackageName: HoloLensCaptions
-  metroPackageVersion: 
+  metroPackageVersion: 1.0.0.0
   metroCertificatePath: Assets\WSATestCertificate.pfx
   metroCertificatePassword: 
   metroCertificateSubject: DefaultCompany
@@ -582,12 +582,42 @@ PlayerSettings:
   metroSplashScreenUseBackgroundColor: 0
   platformCapabilities:
     WindowsStoreApps:
+      AllJoyn: False
+      Appointments: False
+      BackgroundMediaPlayback: False
+      BlockedChatMessages: False
+      Bluetooth: False
+      Chat: False
+      CodeGeneration: False
+      Contacts: False
+      EnterpriseAuthentication: True
       HumanInterfaceDevice: False
+      InputInjectionBrokered: False
       InternetClient: True
-      InternetClientServer: False
+      InternetClientServer: True
+      Location: False
+      LowLevelDevices: False
       Microphone: True
-      PrivateNetworkClientServer: False
+      MusicLibrary: False
+      Objects3D: False
+      OfflineMapsManagement: False
+      PhoneCall: False
+      PhoneCallHistoryPublic: False
+      PicturesLibrary: False
+      PointOfService: False
+      PrivateNetworkClientServer: True
+      Proximity: False
+      RecordedCallsFolder: False
+      RemoteSystem: False
+      RemovableStorage: False
+      SharedUserCertificates: True
       SpatialPerception: True
+      SystemManagement: False
+      UserAccountInformation: False
+      UserDataTasks: False
+      UserNotificationListener: False
+      VideosLibrary: False
+      VoipCall: False
       WebCam: False
   metroFTAName: 
   metroFTAFileTypes: []

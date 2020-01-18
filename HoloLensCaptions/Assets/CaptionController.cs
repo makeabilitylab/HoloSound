@@ -1,6 +1,7 @@
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Speech.V1;
 using Grpc.Auth;
+using Grpc.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,6 +10,8 @@ using System.Threading.Tasks;
 using static Google.Api.Gax.Expiration;
 using UnityEngine.XR.WSA;
 using UnityEngine;
+
+using Microsoft.CognitiveServices.Speech;
 
 #if !UNITY_EDITOR
 using System.Diagnostics;
@@ -20,6 +23,13 @@ namespace HoloToolkit.Unity
 {
     public class CaptionController : Singleton<CaptionController>, InputModule.IInputClickHandler
     {
+        // ---------------------------//
+        private object threadLocker = new object();
+        private bool waitingForReco;
+        private string message;
+        private bool micPermissionGranted = false;
+        //
+
         public InputModule.InputManager input;
 
         List<GameObject> captions;
@@ -70,6 +80,59 @@ namespace HoloToolkit.Unity
         Uri uri = new Uri("ws://128.208.49.41:6502");
             private MessageWebSocket messageWebSocket;
 #endif
+
+        public void respondToInput()
+        {
+            OnPacket("test");
+        }
+
+        public async void MSRec()
+        {
+            // Creates an instance of a speech config with specified subscription key and service region.
+            // Replace with your own subscription key and service region (e.g., "westus").
+            var config = SpeechConfig.FromSubscription("92c0ecbca76742ba9b52ebf14d91efbc", "westus");
+
+            // Make sure to dispose the recognizer after use!
+            using (var recognizer = new SpeechRecognizer(config))
+            {
+                lock (threadLocker)
+                {
+                    waitingForReco = true;
+                }
+
+                // Starts speech recognition, and returns after a single utterance is recognized. The end of a
+                // single utterance is determined by listening for silence at the end or until a maximum of 15
+                // seconds of audio is processed.  The task returns the recognition text as result.
+                // Note: Since RecognizeOnceAsync() returns only a single utterance, it is suitable only for single
+                // shot recognition like command or query.
+                // For long-running multi-utterance recognition, use StartContinuousRecognitionAsync() instead.
+                var result = await recognizer.RecognizeOnceAsync().ConfigureAwait(false);
+
+                // Checks result.
+                string newMessage = string.Empty;
+                if (result.Reason == ResultReason.RecognizedSpeech)
+                {
+                    newMessage = result.Text;
+                }
+                else if (result.Reason == ResultReason.NoMatch)
+                {
+                    newMessage = "NOMATCH: Speech could not be recognized.";
+                }
+                else if (result.Reason == ResultReason.Canceled)
+                {
+                    var cancellation = CancellationDetails.FromResult(result);
+                    newMessage = $"CANCELED: Reason={cancellation.Reason} ErrorDetails={cancellation.ErrorDetails}";
+                }
+
+                lock (threadLocker)
+                {
+                    message = newMessage;
+                    Dispatcher.Instance.Invoke(() => OnPacket(message));
+                    waitingForReco = false;
+                }
+            }
+        }
+
         public void StartSpeechRecognition()
         {
             print("!!!");
@@ -93,11 +156,29 @@ namespace HoloToolkit.Unity
         async Task<object> StreamingMicRecognizeAsync(int seconds)
         {
             print(">>");
+
+            String authJson = @"{
+                  ""type"": ""service_account"",
+                  ""project_id"": ""speechrecognitio-1573892551445"",
+                  ""private_key_id"": ""b88a7d3dd18b3845061b81dc7688575e6051b2ce"",
+                  ""private_key"": ""-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDcHGnLzLT4iQTX\nBsCGxi7m8lskngRxPh+KRNEsnlHBVP2RSeFeZbkVVYLP/HgFcHNhrugCMMrXFumN\nDE1+53n0HxOM2LCpAy2tSKdiMMA5xOS8prU9/brAMdqxo89nSizemExpr03ld56M\nUghGCuPmor6SzHoSOkmAYHMG1ozEgGza3imOtTYZRWA8oGFuKQSanZzgZLX6KT+6\ncRY0TUn7hNygmB1uslfEmzCccvRO25xeXFDRluYvUAqsQJvDuqYofPpcVvQzIIF2\nKap6M1xYVX4u3MICG49zuwOhYO8pModZWjrLfBg4fIaZaQtwja96Vr/CRAQmRqCL\nO33F/QyVAgMBAAECggEADcrkq5Xy68qqOE8pVp3/PQ7dZziqTpj19lQZnLzO+AO7\nX+n2lVO1JVZrvAdgqKFDRFEReLxV+Y8V/iCnOoHcF9AFXu4KeTdvGqH9hcmdl1Z0\nft3IvaRd720wUbFSGHGCyPACLx0tDxP6e2XTNDsPzNlQgne4WSwN2bLcLQbaC0tj\nG/sxSJFMeEKRT6SWcOZO/7CdNX9ojYtLQ8++s86UACapTVYslIGa+fyBHSU24PkR\nqqlT1MAzLpgM3wQ+XwJu1C7n4VRAVDFBY9TaQ7knzGyD55fSf3Br/NKyiZqt2lUU\nRfMTW9PRbB1h6TUvueXV9xFx15RayrtVCaH1BRGcgQKBgQDveqt+YiuROo+bMDIn\n2ksDSo8F7MXYErIlaI8PziBDP3oU7iI9ZFSM0wJqcaeflin9Me+Exf2JMrhYCDWR\noFL3Kt5NT9j5Cl/HHt5t3YI5lnk8XJ6ERUr7T2bdLHDfGrfRZIXDSh88bphy3igJ\nGBoPKDd/hi6lPfNoQb8MCo/mXwKBgQDrS7DYJ7jfdAxHkgwZprAhhUajNFSD/tSk\nWYIeHYj3MBLVvnZBHsKQChDEkXb3Pq53C32Dr+tSFyebQo+GR0LqFwdQ8M5Vupt5\n248tyAgwX4N3weLZNlDdH8GSaCUgCPoh/Fne+JqJV0OeSsUbVnFOug4SdOGwwGEy\nqHffrGJpiwKBgQC2z7EMmIpjog2wTRlsnNJ4n7kQr8/UA2mk7u2PBi5Qx6s9QRA4\nR1fX7NjCQyLPy4UgOLd8ZtwFmQdqhFHIalgLQNlUsWiTrFyzF5h6zAa2SW0hLB8C\nIBd+Qv3mRx+e4LmECjWmf/XaXx7XSUnMr25tNakwG1GOaP1gEBh0a7ewBwKBgCl+\nJohnsNVO3J9+ZL3dRDAVFZjQMJs6Q/tbgXOYF8AnbRreRHJFX2ARNlXDpSwClLeP\nginHywKl7KkXesHeLTGkr/iZDnnVt3csvboADVmibkefHEbbqjTkVblgvjNBAgMe\nQibsxiu0BMuUOeARRVfxvWuJywblVf6d8M2z04LzAoGBAK/4qD9XJQeJoM/Wnok/\nryRY1e3z8wEKFHWwX95pD/AUi4D6hr+hWpnonkYSIcZYPs6dX29wPf+zaWkC2kjl\nbipwd7+7EW4EBSXeKhCOtCNxHrnoOKjqyrkQwdVtD9ZUDKgSqZmVMG7LGKQGGlqw\nrFtSyj5BoOP8KNwhWmyCe/Ak\n-----END PRIVATE KEY-----\n"",
+                  ""client_email"": ""starting-account-p42m0dijqnfd@speechrecognitio-1573892551445.iam.gserviceaccount.com"",
+                  ""client_id"": ""108519999435165912271"",
+                  ""auth_uri"": ""https://accounts.google.com/o/oauth2/auth"",
+                  ""token_uri"": ""https://oauth2.googleapis.com/token"",
+                  ""auth_provider_x509_cert_url"": ""https://www.googleapis.com/oauth2/v1/certs"",
+                  ""client_x509_cert_url"": ""https://www.googleapis.com/robot/v1/metadata/x509/starting-account-p42m0dijqnfd%40speechrecognitio-1573892551445.iam.gserviceaccount.com""
+            }";
+
             Google.Api.Gax.Expiration exp = Google.Api.Gax.Expiration.FromTimeout(new System.TimeSpan(0, 0, 30));
             Google.Api.Gax.Grpc.CallTiming timing = Google.Api.Gax.Grpc.CallTiming.FromExpiration(exp);
             Google.Api.Gax.Grpc.CallSettings setting = Google.Api.Gax.Grpc.CallSettings.FromCallTiming(timing);
-            //var speech = SpeechClient.Create(channel);
-            var speech = SpeechClient.Create();
+            GoogleCredential cred = GoogleCredential.FromJson(authJson);
+
+            Channel channel = new Channel(SpeechClient.DefaultEndpoint.Host, SpeechClient.DefaultEndpoint.Port, cred.ToChannelCredentials());
+
+            var speech = SpeechClient.Create(channel);
+
             var streamingCall = speech.StreamingRecognize(setting);
             
             // Write the initial request with the config.
@@ -158,7 +239,7 @@ namespace HoloToolkit.Unity
                     }
                 };
             waveIn.StartRecording();
-            print("Speak now.");
+            OnPacket("Speak now.");
             await Task.Delay(TimeSpan.FromSeconds(seconds));
             // Stop recording and shut down.
             waveIn.StopRecording();
@@ -174,6 +255,7 @@ namespace HoloToolkit.Unity
 
         protected void Start()
         {
+            Invoke("MSRec", 3);
             input.AddGlobalListener(gameObject);
 
             captions = new List<GameObject>();
@@ -231,12 +313,14 @@ namespace HoloToolkit.Unity
 #if !UNITY_EDITOR
             startWebSocket();
 #endif
+            /*
             speechThread = new Thread(SpeechThreadFnc);
             speechThread.Start();
-            
-        }
+            */
 
-        private void SpeechThreadFnc()
+    }
+
+    private void SpeechThreadFnc()
         {
             Task.Run(async () => await StreamingMicRecognizeAsync(30)).GetAwaiter().GetResult();
         }
