@@ -29,7 +29,6 @@ namespace HoloToolkit.Unity
         List<GameObject> captions;
 
         GameObject DepthObject;
-
         GameObject CursorObject;
         GameObject CursorVisual;
 
@@ -38,22 +37,18 @@ namespace HoloToolkit.Unity
         public bool DepthDebug = false;
         public bool ShowCursor = true;
         public int TextSize = 0;
-
         public int TextLines = 2;
-
         public int TextLineLength = 60;
 
 
         private bool settings_set = false;
 
         string last_packet = "";
-
         string incoming_packet = "";
         int incoming_packet_counter = 0;
         int processed_incoming_packet_counter = 0;
 
         private Thread speechThread;
-
 
         string[] button_names =
         {
@@ -67,12 +62,14 @@ namespace HoloToolkit.Unity
         };
         Dictionary<string, GameObject> buttons;
 
-
+        // ------ MS API START -------
         private bool micPermissionGranted = false;
 
         // Used to show live messages on screen, must be locked to avoid threading deadlocks since
         // the recognition events are raised in a separate thread
-        private string recognizedString = "";
+        private string finalString = "";
+        private string curString = "";
+        private string intermString = "";
         private string errorString = "";
         private System.Object threadLocker = new System.Object();
 
@@ -85,7 +82,7 @@ namespace HoloToolkit.Unity
         // Cognitive Services Speech objects used for Speech Recognition
         private SpeechRecognizer recognizer;
         string fromLanguage = "en-us";
-
+        // ------ MS API END -------
 #if UNITY_EDITOR
         private float last_fake_message_time = 0;
 
@@ -134,10 +131,11 @@ namespace HoloToolkit.Unity
 
             buttons = new Dictionary<string, GameObject>();
 
-            foreach (string name in button_names) {
+            foreach (string name in button_names)
+            {
                 GameObject nextbutton = Instantiate(menubutton);
                 nextbutton.transform.parent = menu.transform;
-                nextbutton.transform.localPosition = new Vector3(0,yp,0);
+                nextbutton.transform.localPosition = new Vector3(0, yp, 0);
                 nextbutton.transform.localRotation = Quaternion.identity;
                 nextbutton.transform.localScale = Vector3.one;
                 yp += 0.09f;
@@ -162,7 +160,7 @@ namespace HoloToolkit.Unity
             speechThread.Start();
             */
 
-    }
+        }
 
 
         void Update()
@@ -178,7 +176,7 @@ namespace HoloToolkit.Unity
 
                 int nextword = UnityEngine.Random.Range(2, 6);
 
-                while(nextword > 0)
+                while (nextword > 0)
                 {
                     nextword--;
                     next_packet = next_packet + "a";
@@ -211,10 +209,10 @@ namespace HoloToolkit.Unity
             if (!settings_set)
             {
                 buttons["MoveWithMe"].GetComponent<TextMesh>().text = MoveWithMe ? "Captions move with you" : "Captions are fixed to world";
-                buttons["AutoDistance"].GetComponent<TextMesh>().text = (CaptionDistance==0) ? "Automatic depth" : ("Fixed depth: "+CaptionDistance+"m");
+                buttons["AutoDistance"].GetComponent<TextMesh>().text = (CaptionDistance == 0) ? "Automatic depth" : ("Fixed depth: " + CaptionDistance + "m");
                 buttons["DepthDebug"].GetComponent<TextMesh>().text = DepthDebug ? "Showing depth debug" : "Not showing depth debug";
                 buttons["ShowCursor"].GetComponent<TextMesh>().text = ShowCursor ? "Showing cursor" : "Not showing cursor";
-                buttons["TextSize"].GetComponent<TextMesh>().text = "Text size: " + (TextSize ==0 ? "small" : (TextSize == 1 ? "medium" : "large"));
+                buttons["TextSize"].GetComponent<TextMesh>().text = "Text size: " + (TextSize == 0 ? "small" : (TextSize == 1 ? "medium" : "large"));
                 buttons["TextLines"].GetComponent<TextMesh>().text = "Text lines: " + TextLines;
                 buttons["TextLineLength"].GetComponent<TextMesh>().text = "Line length: " + TextLineLength + " characters";
 
@@ -258,7 +256,26 @@ namespace HoloToolkit.Unity
 
             lock (threadLocker)
             {
-                OnPacket(recognizedString);
+                if (intermString.Length > 0)
+                {
+                    OnPacket_interm(intermString);
+                    intermString = "";
+                }
+                if (curString.Length > 0)
+                {
+                    OnPacket(curString);
+                    curString = "";
+                }
+            }
+
+        }
+
+        private void OnPacket_interm(string intermString)
+        {
+            
+            foreach (GameObject o in captions)
+            {
+                o.GetComponent<GlassEarTagalong>().AddText_interm(intermString);
             }
 
         }
@@ -267,7 +284,7 @@ namespace HoloToolkit.Unity
         {
             int overlap_length = message.Length;
 
-            while(overlap_length > 0)
+            while (overlap_length > 0)
             {
                 if (last_packet.EndsWith(message.Substring(0, overlap_length)))
                 {
@@ -332,16 +349,17 @@ namespace HoloToolkit.Unity
                             TextSize = (TextSize + 1) % 3;
                             break;
                         case "TextLines":
-                            TextLines = (TextLines%5)+1;
+                            TextLines = (TextLines % 5) + 1;
                             break;
                         case "TextLineLength":
                             TextLineLength += 20;
-                            if (TextLineLength > 80) {
+                            if (TextLineLength > 80)
+                            {
                                 TextLineLength = 40;
                             }
                             break;
                     }
-                    
+
                     settings_set = false;
 
                     eventData.Use();
@@ -350,11 +368,13 @@ namespace HoloToolkit.Unity
             }
 
 
-            if (captions.Count > 1) {
+            if (captions.Count > 1)
+            {
                 for (int i = captions.Count - 1; i >= 0; i--)
                 {
                     GameObject o = captions[i];
-                    if (o.GetComponent<GlassEarTagalong>().frozen && targeted == o) {
+                    if (o.GetComponent<GlassEarTagalong>().frozen && targeted == o)
+                    {
                         captions.RemoveAt(i);
                         Destroy(o);
 
@@ -364,8 +384,10 @@ namespace HoloToolkit.Unity
                 }
             }
 
-            foreach (GameObject o in captions) {
-                if (!o.GetComponent<GlassEarTagalong>().frozen) {
+            foreach (GameObject o in captions)
+            {
+                if (!o.GetComponent<GlassEarTagalong>().frozen)
+                {
                     o.GetComponent<GlassEarTagalong>().frozen = true;
 
                     eventData.Use();
@@ -448,7 +470,7 @@ namespace HoloToolkit.Unity
             }
             else
             {
-                recognizedString = "This app cannot function without access to the microphone.";
+                finalString = "This app cannot function without access to the microphone.";
                 errorString = "ERROR: Microphone access denied.";
                 UnityEngine.Debug.LogFormat(errorString);
             }
@@ -467,7 +489,7 @@ namespace HoloToolkit.Unity
                 UnityEngine.Debug.LogFormat("Starting Speech Recognizer.");
                 await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(false);
 
-                recognizedString = "Speech Recognizer is now running.";
+                finalString = "Speech Recognizer is now running.";
                 UnityEngine.Debug.LogFormat("Speech Recognizer is now running.");
             }
             UnityEngine.Debug.LogFormat("Start Continuous Speech Recognition exit");
@@ -481,14 +503,15 @@ namespace HoloToolkit.Unity
         {
             if (SpeechServiceAPIKey.Length == 0 || SpeechServiceAPIKey == String.Empty)
             {
-                recognizedString = "You forgot to obtain Cognitive Services Speech credentials and inserting them in this app." + Environment.NewLine +
+                finalString = "You forgot to obtain Cognitive Services Speech credentials and inserting them in this app." + Environment.NewLine +
                                    "See the README file and/or the instructions in the Awake() function for more info before proceeding.";
                 errorString = "ERROR: Missing service credentials";
                 UnityEngine.Debug.LogFormat(errorString);
                 return;
             }
             UnityEngine.Debug.LogFormat("Creating Speech Recognizer.");
-            recognizedString = "Initializing speech recognition, please wait...";
+            // finalString = "Initializing speech recognition, please wait...";
+            finalString = "Start: ";
 
             if (recognizer == null)
             {
@@ -511,7 +534,7 @@ namespace HoloToolkit.Unity
             UnityEngine.Debug.LogFormat("CreateSpeechRecognizer exit");
         }
 
-    #region Speech Recognition event handlers
+        #region Speech Recognition event handlers
         private void SessionStartedHandler(object sender, SessionEventArgs e)
         {
             UnityEngine.Debug.LogFormat($"\n    Session started event. Event: {e.ToString()}.");
@@ -542,7 +565,9 @@ namespace HoloToolkit.Unity
                 UnityEngine.Debug.LogFormat($"HYPOTHESIS: Text={e.Result.Text}");
                 lock (threadLocker)
                 {
-                    recognizedString = $"HYPOTHESIS: {Environment.NewLine}{e.Result.Text}";
+                    // finalString = $"HYPOTHESIS: {Environment.NewLine}{e.Result.Text}";
+                    intermString = e.Result.Text;
+                    // finalString = $"{curString}  {intermString}";
                 }
             }
         }
@@ -555,7 +580,11 @@ namespace HoloToolkit.Unity
                 UnityEngine.Debug.LogFormat($"RECOGNIZED: Text={e.Result.Text}");
                 lock (threadLocker)
                 {
-                    recognizedString = $"RESULT: {Environment.NewLine}{e.Result.Text}";
+                    // finalString = $"RESULT: {Environment.NewLine}{e.Result.Text}";
+                    // curString = $"{curString}  {e.Result.Text}";
+                    // finalString = curString;
+                    // finalString = $"{e.Result.Text}";
+                    curString = e.Result.Text;
                 }
             }
             else if (e.Result.Reason == ResultReason.NoMatch)
@@ -597,7 +626,7 @@ namespace HoloToolkit.Unity
                 recognizer.SessionStopped -= SessionStoppedHandler;
                 recognizer.Dispose();
                 recognizer = null;
-                recognizedString = "Speech Recognizer is now stopped.";
+                finalString = "Speech Recognizer is now stopped.";
                 UnityEngine.Debug.LogFormat("Speech Recognizer is now stopped.");
             }
         }
