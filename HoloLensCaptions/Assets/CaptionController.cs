@@ -93,7 +93,8 @@ namespace HoloToolkit.Unity
 
         protected void Start()
         {
-            Invoke("StartContinuous", 3);
+            // subscription expired - restore once renewed
+            // Invoke("StartContinuous", 3);
 
             input.AddGlobalListener(gameObject);
 
@@ -224,6 +225,7 @@ namespace HoloToolkit.Unity
                 settings_set = true;
             }
 
+
             InputModule.CursorStateEnum cursorState = CursorObject.GetComponent<InputModule.AnimatedCursor>().CursorState;
             if (cursorState == InputModule.CursorStateEnum.Interact || cursorState == InputModule.CursorStateEnum.InteractHover || cursorState == InputModule.CursorStateEnum.Select)
             {
@@ -280,7 +282,7 @@ namespace HoloToolkit.Unity
 
         }
 
-        private void OnPacket(string message)
+        public void OnPacket(string message)
         {
             int overlap_length = message.Length;
 
