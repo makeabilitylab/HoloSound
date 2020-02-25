@@ -1589,6 +1589,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   arrow: {fileID: 932637807}
+  indicatorPrefeb: {fileID: 1999386496064678, guid: 2ea374047d6628b4db26bde5251fa9d6,
+    type: 2}
 --- !u!1 &2094244952
 GameObject:
   m_ObjectHideFlags: 0

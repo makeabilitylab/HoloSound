@@ -1,17 +1,23 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 public class Localization : MonoBehaviour {
     public static Localization instance;
 
-    public GameObject arrow;
+    public GameObject arrow; // arrow is used for 2D
+    public GameObject indicatorPrefeb; // indicator is used for 3D
 
     private Vector3 soundSourceLocaltion;
+
+    private List<GameObject> indicators;
 
     public void Awake()
     {
         instance = this;
+        indicators = new List<GameObject>(); // up to four indicates
     }
 
     public void setSoundSourceAngle(int angle)
@@ -23,14 +29,46 @@ public class Localization : MonoBehaviour {
 
     public void Update()
     {
+        
+       
+    }
+
+    public void updateLocalization2D()
+    {
         Transform cam = Camera.main.transform;
         Vector3 originToSoundSource = soundSourceLocaltion - cam.position;
         float angle = Vector3.SignedAngle(cam.forward, originToSoundSource, cam.up);
         Debug.DrawRay(cam.position, cam.forward, Color.red, 0.1f);
         Debug.DrawRay(cam.position, originToSoundSource, Color.blue, 0.1f);
         arrow.GetComponent<RectTransform>().localEulerAngles = new Vector3(0, 0, -angle);
-       
     }
 
+    public void updateLocalization3D(string jsonMessage)
+    {
+        // First clear all the existing indicators
+        foreach (GameObject go in indicators)
+        {
+            Destroy(go);
+        }
+        indicators.Clear();
 
+        JObject o = JObject.Parse(jsonMessage);
+        JArray points = (JArray)o["src"];
+        foreach (JObject obj in points.Children())
+        {
+            float x = float.Parse(obj["x"].ToString());
+            float y = float.Parse(obj["y"].ToString());
+            float z = float.Parse(obj["z"].ToString());
+
+            if (!(x == 0 && y == 0 && z == 0))
+            {
+                // we've found a source
+                Vector3 pos = Camera.main.transform.position + 10 * x * new Vector3(1, 0, 0)
+                    + 10 * y * new Vector3(0, 0, 1)
+                    + 10 * z * new Vector3(0, 1, 0);
+                GameObject go = Instantiate(indicatorPrefeb, pos, Quaternion.identity);
+                indicators.Add(go);
+            }
+        }
+    }
 }

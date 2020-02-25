@@ -21,7 +21,7 @@ public class UDPClient : MonoBehaviour
     {
         String hostname = "attu1.cs.washington.edu";
         var addresses = System.Net.Dns.GetHostAddresses(hostname);
-        int port = 8924;
+        int port = 8467;
         remoteEndPoint = new IPEndPoint(addresses[0], port);
 
         if (addresses.Length == 0)
@@ -36,17 +36,22 @@ public class UDPClient : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (client.Available > 0)
+        byte[] data = null;
+        // only receives the newest packet.
+        while (client.Available > 0)
         {
-            // receive data only if there is something available.
-            byte[] data = client.Receive(ref remoteEndPoint);
+            data = client.Receive(ref remoteEndPoint);
+        }
+        if (data != null)
+        {
             string content = Encoding.UTF8.GetString(data, 0, data.Length);
             print(content);
             DOADisplay.GetComponent<TextMesh>().text = content;
-            Localization.instance.setSoundSourceAngle(int.Parse(content));
+            Localization.instance.updateLocalization3D(content);
+            // Localization.instance.setSoundSourceAngle(int.Parse(content));
+            // client.Receive(ref remoteEndPoint);
         }
-
-
+        
     }
 
     private void sendMessage(String message)
@@ -60,6 +65,5 @@ public class UDPClient : MonoBehaviour
         {
             print(e.ToString());
         }
-        
     }
 }
