@@ -9,7 +9,7 @@ public class Localization : MonoBehaviour {
 
     public GameObject arrow; // arrow is used for 2D
     public GameObject indicatorPrefeb; // indicator is used for 3D
-
+    public long packetCount = 0;
     private Vector3 soundSourceLocaltion;
 
     private List<GameObject> indicators;
@@ -19,6 +19,7 @@ public class Localization : MonoBehaviour {
         instance = this;
         indicators = new List<GameObject>(); // up to four indicates
     }
+
 
     public void setSoundSourceAngle(int angle)
     {
@@ -45,30 +46,51 @@ public class Localization : MonoBehaviour {
 
     public void updateLocalization3D(string jsonMessage)
     {
-        // First clear all the existing indicators
-        foreach (GameObject go in indicators)
+        packetCount++;
+        print(packetCount / Time.time);
+        JObject o;
+        try
         {
-            Destroy(go);
+            o = JObject.Parse(jsonMessage);
+        } catch (JsonReaderException e)
+        {
+            return;
         }
-        indicators.Clear();
-
-        JObject o = JObject.Parse(jsonMessage);
+        
         JArray points = (JArray)o["src"];
+        List<GameObject> temp = new List<GameObject>();
         foreach (JObject obj in points.Children())
         {
             float x = float.Parse(obj["x"].ToString());
             float y = float.Parse(obj["y"].ToString());
             float z = float.Parse(obj["z"].ToString());
-
-            if (!(x == 0 && y == 0 && z == 0))
+            float activity = float.Parse(obj["activity"].ToString()); // activity is the probablity that the sound source exists
+            if (activity > 0.0f)
             {
+                
                 // we've found a source
                 Vector3 pos = Camera.main.transform.position + 10 * x * new Vector3(1, 0, 0)
                     + 10 * y * new Vector3(0, 0, 1)
                     + 10 * z * new Vector3(0, 1, 0);
                 GameObject go = Instantiate(indicatorPrefeb, pos, Quaternion.identity);
-                indicators.Add(go);
+                temp.Add(go);
+                clearIndicators();
             }
         }
+        if (temp.Count > 0.5f)
+        {
+            indicators = temp;
+        }
+    }
+
+    private void clearIndicators()
+    {
+        // First clear all the existing indicators
+        foreach (GameObject go in indicators)
+        {
+            Destroy(go);
+            
+        }
+        indicators.Clear();
     }
 }
