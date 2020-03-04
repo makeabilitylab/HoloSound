@@ -9,6 +9,7 @@ public class Localization : MonoBehaviour {
 
     public GameObject arrow; // arrow is used for 2D
     public GameObject indicatorPrefeb; // indicator is used for 3D
+    public GameObject[] EightDir;
     public long packetCount = 0;
     private Vector3 soundSourceLocaltion;
 
@@ -80,6 +81,49 @@ public class Localization : MonoBehaviour {
         if (temp.Count > 0.5f)
         {
             indicators = temp;
+        }
+    }
+
+    public void updateLocalization8Directions(string jsonMessage)
+    {
+        JObject o;
+        try
+        {
+            o = JObject.Parse(jsonMessage);
+        }
+        catch (JsonReaderException e)
+        {
+            return;
+        }
+
+        JArray points = (JArray)o["src"];
+        List<GameObject> temp = new List<GameObject>();
+
+        foreach(GameObject obj in EightDir)
+        {
+            obj.SetActive(false);
+        }
+
+
+        foreach (JObject obj in points.Children())
+        {
+            float x = float.Parse(obj["x"].ToString());
+            float y = float.Parse(obj["y"].ToString());
+            float z = float.Parse(obj["z"].ToString());
+            float activity = float.Parse(obj["activity"].ToString()); // activity is the probablity that the sound source exists
+            if (activity > 0.0f)
+            {
+
+                // we've found a source
+                Vector3 pos = new Vector3(x, y, 0);
+                print(pos);
+                Vector3 forward = new Vector3(0, 1, 0);
+                Vector3 up = new Vector3(0, 0, 1);
+
+                float angle = Vector3.SignedAngle(pos, forward, up);
+                int index = (int)(((angle + 360) % 360) / 45);
+                EightDir[index].SetActive(true);                
+            }
         }
     }
 

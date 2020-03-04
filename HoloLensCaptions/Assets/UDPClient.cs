@@ -19,7 +19,7 @@ public class UDPClient : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        String hostname = "attu1.cs.washington.edu";
+        String hostname = "attu2.cs.washington.edu";
         var addresses = System.Net.Dns.GetHostAddresses(hostname);
         int port = 8467;
         remoteEndPoint = new IPEndPoint(addresses[0], port);
@@ -47,7 +47,7 @@ public class UDPClient : MonoBehaviour
             string content = Encoding.UTF8.GetString(data, 0, data.Length);
             print(content);
             DOADisplay.GetComponent<TextMesh>().text = content;
-            Localization.instance.updateLocalization3D(content);
+            Localization.instance.updateLocalization8Directions(content);
             // Localization.instance.setSoundSourceAngle(int.Parse(content));
             // client.Receive(ref remoteEndPoint);
         }
