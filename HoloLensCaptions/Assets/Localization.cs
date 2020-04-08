@@ -4,21 +4,28 @@ using UnityEngine;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-public class Localization : MonoBehaviour {
+public class Localization : MonoBehaviour
+{
     public static Localization instance;
 
     public GameObject arrow; // arrow is used for 2D
     public GameObject indicatorPrefeb; // indicator is used for 3D
-    public GameObject[] EightDir;
+    public GameObject[] TwelveDir; // used for 12-dir display. Make sure to et size = 12 in the editor.
+    public float fadeDuration = 1; // how long does it take to let one indicator fade out.
     public long packetCount = 0;
     private Vector3 soundSourceLocaltion;
+
+    private Dictionary<GameObject, float> alphaTable = new Dictionary<GameObject, float>();
+    private const int thetaDivision = 12;
+    private const int phiDivision = 6;
+    private float[,] directionActivity = new float[thetaDivision, phiDivision];
 
     private List<GameObject> indicators;
 
     public void Awake()
     {
         instance = this;
-        indicators = new List<GameObject>(); // up to four indicates
+        indicators = new List<GameObject>();
     }
 
 
@@ -31,10 +38,33 @@ public class Localization : MonoBehaviour {
 
     public void Update()
     {
-        
-       
+        clearIndicators();
+        // Check reach potentially active, and map then to one of 12 directions.
+        // Right now we only take the maximum.
+        for (int i = 0; i < directionActivity.GetLength(0); i++)
+        {
+            for (int j = 0; j < directionActivity.GetLength(1); j++)
+            {
+                float activity = directionActivity[i, j];
+
+                float x = Mathf.Sin(j * phiDivision) * Mathf.Cos(i * thetaDivision);
+                float y = Mathf.Sin(j * phiDivision) * Mathf.Sin(i * thetaDivision);
+                float z = Mathf.Cos(j * phiDivision);
+
+                Vector3 dir = new Vector3(x, y, z);
+
+                mapSourceDirectionToIndicators(dir, activity);
+
+                directionActivity[i, j] = Mathf.Max(0, directionActivity[i, j] - Time.deltaTime / fadeDuration);
+            }
+        }
+
     }
 
+    /*
+     * Used by other classes to update the visual of sound source indicators.
+     * 
+     */
     public void updateLocalization2D()
     {
         Transform cam = Camera.main.transform;
@@ -45,6 +75,10 @@ public class Localization : MonoBehaviour {
         arrow.GetComponent<RectTransform>().localEulerAngles = new Vector3(0, 0, -angle);
     }
 
+    /*
+    * Used by other classes to update the visual of sound source indicators.
+    * 
+    */
     public void updateLocalization3D(string jsonMessage)
     {
         packetCount++;
@@ -53,11 +87,12 @@ public class Localization : MonoBehaviour {
         try
         {
             o = JObject.Parse(jsonMessage);
-        } catch (JsonReaderException e)
+        }
+        catch (JsonReaderException e)
         {
             return;
         }
-        
+
         JArray points = (JArray)o["src"];
         List<GameObject> temp = new List<GameObject>();
         foreach (JObject obj in points.Children())
@@ -68,14 +103,14 @@ public class Localization : MonoBehaviour {
             float activity = float.Parse(obj["activity"].ToString()); // activity is the probablity that the sound source exists
             if (activity > 0.0f)
             {
-                
+
                 // we've found a source
                 Vector3 pos = Camera.main.transform.position + 10 * x * new Vector3(1, 0, 0)
                     + 10 * y * new Vector3(0, 0, 1)
                     + 10 * z * new Vector3(0, 1, 0);
                 GameObject go = Instantiate(indicatorPrefeb, pos, Quaternion.identity);
                 temp.Add(go);
-                clearIndicators();
+                //clearIndicators();
             }
         }
         if (temp.Count > 0.5f)
@@ -84,7 +119,11 @@ public class Localization : MonoBehaviour {
         }
     }
 
-    public void updateLocalization8Directions(string jsonMessage)
+    /*
+    * Used by other classes to update the visual of sound source indicators.
+    * 
+    */
+    public void updateLocalization12Directions(string jsonMessage)
     {
         JObject o;
         try
@@ -99,12 +138,6 @@ public class Localization : MonoBehaviour {
         JArray points = (JArray)o["src"];
         List<GameObject> temp = new List<GameObject>();
 
-        foreach(GameObject obj in EightDir)
-        {
-            obj.SetActive(false);
-        }
-
-
         foreach (JObject obj in points.Children())
         {
             float x = float.Parse(obj["x"].ToString());
@@ -113,28 +146,58 @@ public class Localization : MonoBehaviour {
             float activity = float.Parse(obj["activity"].ToString()); // activity is the probablity that the sound source exists
             if (activity > 0.0f)
             {
+                Vector2 xy = new Vector2(x, y);
+                float signedTheta = Vector2.SignedAngle(xy, new Vector2(1, 0)) / 180 * Mathf.PI; // ranges from -pi to pi
+                float unsignedTheta = signedTheta < 0 ? signedTheta + 2 * Mathf.PI : signedTheta; // ranges from 0 to 360
+                
+                int tIndexFloored = Mathf.FloorToInt(unsignedTheta / (2 * Mathf.PI / thetaDivision));
+                //int tIndex = tIndexFloored + Mathf.RoundToInt((unsignedTheta - tIndexFloored * (2 * Mathf.PI / thetaDivision)) / (2 * Mathf.PI / thetaDivision));
 
-                // we've found a source
-                Vector3 pos = new Vector3(x, y, 0);
-                print(pos);
-                Vector3 forward = new Vector3(0, 1, 0);
-                Vector3 up = new Vector3(0, 0, 1);
+                Vector3 xyz = new Vector3(x, y, z);
+                float phi = Vector3.Angle(new Vector3(0, 0, 1), xyz) / 180 * Mathf.PI; // phi is always unsigned
+                print(phi * 180 / Mathf.PI);
+                int pIndexFloored = Mathf.FloorToInt(phi / (Mathf.PI / phiDivision));
+                //int pIndex = pIndexFloored + Mathf.RoundToInt((phi - pIndexFloored * (Mathf.PI / pIndexFloored)) / (Mathf.PI / phiDivision));
 
-                float angle = Vector3.SignedAngle(pos, forward, up);
-                int index = (int)(((angle + 360) % 360) / 45);
-                EightDir[index].SetActive(true);                
+                print("tINdex: " + tIndexFloored + " pIndex:" + pIndexFloored);
+                //pIndexFloored = 3;
+                directionActivity[tIndexFloored, pIndexFloored] = 1; // set activitiy on the direction to 1, fully active.
             }
         }
     }
 
+    /*
+     * This is method work works with updateLocalization3D()
+     */
     private void clearIndicators()
     {
-        // First clear all the existing indicators
-        foreach (GameObject go in indicators)
+        // set opacity to 0
+        foreach (GameObject go in TwelveDir)
         {
-            Destroy(go);
-            
+            Color c = go.GetComponent<SpriteRenderer>().color;
+            c.a = 0;
+            go.GetComponent<SpriteRenderer>().color = c;
         }
-        indicators.Clear();
+    }
+
+    /*
+     * updateLocalization12Directions() will map incoming sound source
+     * directions (which is continuous) to a set of discrete vectors
+     * spanning 360 degree. This function will then map each of the vectors
+     * to the (12) visual indicators.
+     * Note that activity ranges from 0 to 1.
+     */
+    private void mapSourceDirectionToIndicators(Vector3 dir, float activity)
+    {
+        Vector3 forward = Camera.main.transform.forward;
+        Vector3 up = Camera.main.transform.up;
+
+        float angle = Vector3.SignedAngle(dir, forward, up);
+        int index = (int)(((angle + 360) % 360) / (360 / TwelveDir.Length));
+        TwelveDir[index].SetActive(true);
+
+        Color c = TwelveDir[index].GetComponent<SpriteRenderer>().color;
+        c.a = Mathf.Max(c.a, activity);
+        TwelveDir[index].GetComponent<SpriteRenderer>().color = c;
     }
 }

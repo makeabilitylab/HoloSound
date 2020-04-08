@@ -45,9 +45,9 @@ public class UDPClient : MonoBehaviour
         if (data != null)
         {
             string content = Encoding.UTF8.GetString(data, 0, data.Length);
-            print(content);
+            //print(content);
             DOADisplay.GetComponent<TextMesh>().text = content;
-            Localization.instance.updateLocalization8Directions(content);
+            Localization.instance.updateLocalization12Directions(content);
             // Localization.instance.setSoundSourceAngle(int.Parse(content));
             // client.Receive(ref remoteEndPoint);
         }
