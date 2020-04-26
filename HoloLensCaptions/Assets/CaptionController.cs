@@ -8,6 +8,8 @@ using UnityEngine;
 
 using Microsoft.CognitiveServices.Speech.Audio;
 using Microsoft.CognitiveServices.Speech;
+using BestHTTP.SocketIO;
+using System.Collections;
 
 #if !UNITY_EDITOR
 using System.Diagnostics;
@@ -71,6 +73,7 @@ namespace HoloToolkit.Unity
         private string curString = "";
         private string intermString = "";
         private string errorString = "";
+        private string classString = "";
         private System.Object threadLocker = new System.Object();
 
         // Speech recognition key, required
@@ -83,22 +86,53 @@ namespace HoloToolkit.Unity
         private SpeechRecognizer recognizer;
         string fromLanguage = "en-us";
         // ------ MS API END -------
-#if UNITY_EDITOR
-        private float last_fake_message_time = 0;
 
-#else
-        Uri uri = new Uri("ws://128.208.49.41:6502");
-            private MessageWebSocket messageWebSocket;
-#endif
+        private Microphone mic;
+        private AudioClip micClip;
+        private int pos;
+        private int lastPos;
+        private int pos_class;
+        private int lastPos_class;
+        private static int RATE = 16000;
+        private static int CHUNK = 1600;
+        private float[] sample;
+        private float[] sample_class;
+        private MicToAudioStream audioStream;
+        public GameObject soundClassDisplay;
+
+        LinkedList<String> outlst = new LinkedList<String>();
+        int len = 0;
+
+        SocketManager manager;
+
+        const int CHANNELS = 1;
+        Dictionary<String, short[]> dict = new Dictionary<string, short[]>();
 
         protected void Start()
         {
-            // subscription expired - restore once renewed
-            // Invoke("StartContinuous", 3);
-
-            input.AddGlobalListener(gameObject);
-
             micPermissionGranted = true;
+            micClip = Microphone.Start("", true, 10, RATE);
+            pos = 0;
+            lastPos = 0;
+            pos_class = 0;
+            lastPos_class = 0;
+            sample = new float[CHUNK];
+            sample_class = new float[RATE];
+            input.AddGlobalListener(gameObject);
+            classString = "started";
+
+            
+            SocketOptions options = new SocketOptions();
+            options.AutoConnect = true;
+            options.ConnectWith = BestHTTP.SocketIO.Transports.TransportTypes.WebSocket;
+
+            manager = new SocketManager(new Uri("ws://128.208.49.41:8787/socket.io/"), options);
+            manager.Socket.On(SocketIOEventTypes.Connect, OnServerConnect);
+            manager.Socket.On(SocketIOEventTypes.Disconnect, OnServerDisconnect);
+            manager.Socket.On(SocketIOEventTypes.Error, OnError);
+            manager.Socket.On("audio_label", GetAudioLabel);
+
+            StartContinuous();
 
             captions = new List<GameObject>();
             captions.Add(transform.Find("CaptionsDisplay").gameObject);
@@ -151,61 +185,96 @@ namespace HoloToolkit.Unity
             {
                 throw new Exception("Can't find WorldMesh(CRASHES EDITOR)");
             }
-
-            System.Diagnostics.Debug.WriteLine("Web socket script started.");
-#if !UNITY_EDITOR
-            startWebSocket();
-#endif
             /*
             speechThread = new Thread(SpeechThreadFnc);
             speechThread.Start();
             */
+            StartCoroutine(emitCoroutine("audio_data", dict));
 
         }
 
+        public void EchoFn(Socket socket, Packet packet, params object[] args)
+        {
+            UnityEngine.Debug.Log("echo received");
+            object[] res = packet.Decode(socket.Manager.Encoder);
+            Dictionary<String, System.Object> dic = (Dictionary<String, System.Object>)res[0];
+            UnityEngine.Debug.Log(dic["echo"].ToString());
+        }
+
+        void OnServerConnect(Socket socket, Packet packet, params object[] args)
+        {
+            UnityEngine.Debug.Log("Connected");
+        }
+
+        void OnServerDisconnect(Socket socket, Packet packet, params object[] args)
+        {
+            UnityEngine.Debug.Log("Disconnected");
+        }
+
+        void OnError(Socket socket, Packet packet, params object[] args)
+        {
+            Error error = args[0] as Error;
+            UnityEngine.Debug.LogWarning(error.ToString());
+            switch (error.Code)
+            {
+                case SocketIOErrors.User:
+                    UnityEngine.Debug.LogWarning("Exception in an event handler!");
+                    break;
+                case SocketIOErrors.Internal:
+                    UnityEngine.Debug.LogWarning("Internal error!");
+                    break;
+                default:
+                    UnityEngine.Debug.LogWarning("server error!");
+                    break;
+            }
+        }
+
+        public void GetAudioLabel(Socket socket, Packet packet, params object[] args)
+        {
+            UnityEngine.Debug.Log("label received");
+            object[] res = packet.Decode(socket.Manager.Encoder);
+            Dictionary<String, System.Object> dic = (Dictionary<String, System.Object>)res[0];
+            string label = dic["label"].ToString();
+            if (label != "Unrecognized Sound") // && label != "Speech")
+            {
+                outlst.AddLast(label);
+                len++;
+                if (len > 3)
+                {
+                    outlst.RemoveFirst();
+                }
+                classString = "";
+                foreach (String o in outlst)
+                {
+                    classString += o + "\n";
+                }
+            }
+        }
+
+        private byte[] FloatToByte(byte[] arrb, float[] arrf)
+        {
+            for (int i = 0; i < arrf.Length; i++)
+            {
+                byte[] bi = System.BitConverter.GetBytes((short)(arrf[i] * 32768f));
+                arrb[2 * i] = bi[0];
+                arrb[2 * i + 1] = bi[1];
+            }
+            return arrb;
+        }
+
+        public short[] FloatToShort(float[] input)
+        {
+            int len = input.Length;
+            short[] output = new short[len];
+            for (int n = 0; n < len; n++)
+            {
+                output[n] = (short)(input[n] * 32768f);
+            }
+            return output;
+        }
 
         void Update()
         {
-
-#if UNITY_EDITOR
-
-            if ((Time.time - last_fake_message_time) > 1)
-            {
-                last_fake_message_time = Time.time;
-
-                string next_packet = last_packet;
-
-                int nextword = UnityEngine.Random.Range(2, 6);
-
-                while (nextword > 0)
-                {
-                    nextword--;
-                    next_packet = next_packet + "a";
-                }
-
-                next_packet = next_packet + "\n";
-                nextword = UnityEngine.Random.Range(2, 6);
-
-                while (nextword > 0)
-                {
-                    nextword--;
-                    next_packet = next_packet + "w";
-                }
-
-                if (next_packet.Length > 250)
-                {
-                    next_packet = next_packet.Substring(next_packet.Length - 250);
-                }
-
-                //OnPacket(next_packet);
-            }
-#else
-            if (incoming_packet_counter > processed_incoming_packet_counter) {
-                processed_incoming_packet_counter = incoming_packet_counter;
-                OnPacket(incoming_packet);
-            }
-
-#endif
 
             if (!settings_set)
             {
@@ -255,6 +324,51 @@ namespace HoloToolkit.Unity
                     }
                 }
             }
+
+            pos = Microphone.GetPosition(null);
+            pos_class = pos;
+            if (pos < lastPos)
+            {
+                pos += 10 * RATE;
+            }
+            if (pos > lastPos + CHUNK)
+            {
+                // UnityEngine.Debug.Log("speech " + pos + " " + lastPos);
+                micClip.GetData(sample, lastPos);
+                lastPos = lastPos + CHUNK;
+                if (lastPos > RATE * 10)
+                {
+                    lastPos -= RATE * 10;
+                }
+                byte[] barry = new byte[sample.Length * 2];
+                FloatToByte(barry, sample);
+                audioStream.Write(barry, 0, barry.Length);
+            }
+
+
+            Task.Run(() => {
+                if (pos_class < lastPos_class)
+                {
+                    lastPos_class = 0;
+                }
+
+                if (pos_class > lastPos_class + RATE)
+                {
+                    
+                    Dispatcher.Instance.Invoke(() =>
+                    {
+                        micClip.GetData(sample_class, pos_class - RATE);
+                    });
+                    
+                    lastPos_class = pos_class - RATE;
+                    // UnityEngine.Debug.Log("sound " + pos_class + " " + lastPos_class);
+                    dict["data"] = FloatToShort(sample_class);
+                }
+            });
+
+
+            // UnityEngine.Debug.Log("updating class " + classString);
+            soundClassDisplay.GetComponent<TextMesh>().text = classString;
 
             lock (threadLocker)
             {
@@ -411,55 +525,6 @@ namespace HoloToolkit.Unity
             OnPacket("test");
         }
 
-        /*
-        public async void MSRec()
-        {
-            // Creates an instance of a speech config with specified subscription key and service region.
-            // Replace with your own subscription key and service region (e.g., "westus").
-            var config = SpeechConfig.FromSubscription("92c0ecbca76742ba9b52ebf14d91efbc", "westus");
-
-            // Make sure to dispose the recognizer after use!
-            using (var recognizer = new SpeechRecognizer(config))
-            {
-                lock (threadLocker)
-                {
-                    waitingForReco = true;
-                }
-
-                // Starts speech recognition, and returns after a single utterance is recognized. The end of a
-                // single utterance is determined by listening for silence at the end or until a maximum of 15
-                // seconds of audio is processed.  The task returns the recognition text as result.
-                // Note: Since RecognizeOnceAsync() returns only a single utterance, it is suitable only for single
-                // shot recognition like command or query.
-                // For long-running multi-utterance recognition, use StartContinuousRecognitionAsync() instead.
-                var result = await recognizer.RecognizeOnceAsync().ConfigureAwait(false);
-
-                // Checks result.
-                string newMessage = string.Empty;
-                if (result.Reason == ResultReason.RecognizedSpeech)
-                {
-                    newMessage = result.Text;
-                }
-                else if (result.Reason == ResultReason.NoMatch)
-                {
-                    newMessage = "NOMATCH: Speech could not be recognized.";
-                }
-                else if (result.Reason == ResultReason.Canceled)
-                {
-                    var cancellation = CancellationDetails.FromResult(result);
-                    newMessage = $"CANCELED: Reason={cancellation.Reason} ErrorDetails={cancellation.ErrorDetails}";
-                }
-
-                lock (threadLocker)
-                {
-                    message = newMessage;
-                    Dispatcher.Instance.Invoke(() => OnPacket(message));
-                    waitingForReco = false;
-                }
-            }
-        }
-        */
-
         /// <summary>
         /// Attach to button component used to launch continuous recognition (with or without translation)
         /// </summary>
@@ -476,6 +541,9 @@ namespace HoloToolkit.Unity
                 errorString = "ERROR: Microphone access denied.";
                 UnityEngine.Debug.LogFormat(errorString);
             }
+
+
+         
         }
 
         /// <summary>
@@ -517,9 +585,13 @@ namespace HoloToolkit.Unity
 
             if (recognizer == null)
             {
-                SpeechConfig config = SpeechConfig.FromSubscription("92c0ecbca76742ba9b52ebf14d91efbc", "westus");
-                config.SpeechRecognitionLanguage = fromLanguage;
-                recognizer = new SpeechRecognizer(config);
+                SpeechConfig sconfig = SpeechConfig.FromSubscription("b9bdc34702c1439589daf92475e8f827", "westus2");
+                sconfig.SpeechRecognitionLanguage = fromLanguage;
+
+                audioStream = new MicToAudioStream();
+                AudioConfig aconfig = AudioConfig.FromStreamInput(audioStream, AudioStreamFormat.GetWaveFormatPCM(16000, 16, 1));
+
+                recognizer = new SpeechRecognizer(sconfig, aconfig);
 
                 if (recognizer != null)
                 {
@@ -633,56 +705,17 @@ namespace HoloToolkit.Unity
             }
         }
 
-#if !UNITY_EDITOR
-        private async void startWebSocket()
+        IEnumerator emitCoroutine(string s, Dictionary<string, short[]> dict)
         {
-
-            messageWebSocket = new MessageWebSocket();
-            messageWebSocket.Control.MessageType = SocketMessageType.Utf8;
-            messageWebSocket.MessageReceived += WebSocket_MessageReceived;
-            messageWebSocket.Closed += WebSocket_Closed;
-
-            try
+            yield return new WaitForSeconds(1);
+            while (true)
             {
-                await messageWebSocket.ConnectAsync(uri);
-                System.Diagnostics.Debug.WriteLine("Connected to Server");
+                print("???");
+                manager.Socket.Emit("audio_data", dict);
+                yield return new WaitForSeconds(0.5f);
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(ex.Message + " / " + ex.HResult + " / " + ex.Data);
-            }
-            //// NOTE: Refer to https://docs.microsoft.com/en-us/windows/uwp/networking/websockets if you want to send message as a seperate thread ////
 
+            yield return null;
         }
-
-        private void WebSocket_MessageReceived(MessageWebSocket sender, MessageWebSocketMessageReceivedEventArgs args)
-        {
-            try
-            {
-                using (DataReader dataReader = args.GetDataReader())
-                {
-                    dataReader.UnicodeEncoding = UnicodeEncoding.Utf8;
-                    incoming_packet_counter++;
-                    incoming_packet = dataReader.ReadString(dataReader.UnconsumedBufferLength);
-                    System.Diagnostics.Debug.WriteLine("Message received from MessageWebSocket: " + incoming_packet);
-                    
-                    //messageWebSocket.Dispose();
-                }
-            }
-            catch (Exception ex)
-            {
-                Windows.Web.WebErrorStatus webErrorStatus = WebSocketError.GetStatus(ex.GetBaseException().HResult);
-                // Add additional code here to handle exceptions.
-            }
-        }
-
-        private void WebSocket_Closed(IWebSocket sender, WebSocketClosedEventArgs args)
-        {
-            System.Diagnostics.Debug.WriteLine("WebSocket_Closed; Code: " + args.Code + ", Reason: \"" + args.Reason + "\"");
-            // Add additional code here to handle the WebSocket being closed.
-        }
-        // Use this for initialization
-#endif
-
     }
 }

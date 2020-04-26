@@ -149,18 +149,19 @@ public class Localization : MonoBehaviour
                 Vector2 xy = new Vector2(x, y);
                 float signedTheta = Vector2.SignedAngle(xy, new Vector2(1, 0)) / 180 * Mathf.PI; // ranges from -pi to pi
                 float unsignedTheta = signedTheta < 0 ? signedTheta + 2 * Mathf.PI : signedTheta; // ranges from 0 to 360
-                
+
+                print(unsignedTheta);
                 int tIndexFloored = Mathf.FloorToInt(unsignedTheta / (2 * Mathf.PI / thetaDivision));
                 //int tIndex = tIndexFloored + Mathf.RoundToInt((unsignedTheta - tIndexFloored * (2 * Mathf.PI / thetaDivision)) / (2 * Mathf.PI / thetaDivision));
 
                 Vector3 xyz = new Vector3(x, y, z);
                 float phi = Vector3.Angle(new Vector3(0, 0, 1), xyz) / 180 * Mathf.PI; // phi is always unsigned
-                print(phi * 180 / Mathf.PI);
+                // print(phi * 180 / Mathf.PI);
                 int pIndexFloored = Mathf.FloorToInt(phi / (Mathf.PI / phiDivision));
                 //int pIndex = pIndexFloored + Mathf.RoundToInt((phi - pIndexFloored * (Mathf.PI / pIndexFloored)) / (Mathf.PI / phiDivision));
 
                 print("tINdex: " + tIndexFloored + " pIndex:" + pIndexFloored);
-                //pIndexFloored = 3;
+                pIndexFloored = 3;
                 directionActivity[tIndexFloored, pIndexFloored] = 1; // set activitiy on the direction to 1, fully active.
             }
         }
@@ -189,8 +190,18 @@ public class Localization : MonoBehaviour
      */
     private void mapSourceDirectionToIndicators(Vector3 dir, float activity)
     {
+        float y = dir.y;
+        float z = dir.z;
+        dir.z = y;
+        dir.y = z;
+
         Vector3 forward = Camera.main.transform.forward;
         Vector3 up = Camera.main.transform.up;
+        /*
+        print("forward : " + Camera.main.transform.forward + " up: " + Camera.main.transform.up);
+
+        Vector3 forward = new Vector3(0, 1, 0);
+        Vector3 up = new Vector3(0, 0, 1);*/
 
         float angle = Vector3.SignedAngle(dir, forward, up);
         int index = (int)(((angle + 360) % 360) / (360 / TwelveDir.Length));
