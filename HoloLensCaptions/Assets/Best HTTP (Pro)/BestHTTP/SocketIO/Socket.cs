@@ -178,7 +178,8 @@ namespace BestHTTP.SocketIO
 
             try
             {
-                payload = Manager.Encoder.Encode(arguments);
+                payload = "{}"; 
+                    //Manager.Encoder.Encode(arguments);
             }
             catch(Exception ex)
             {
@@ -204,7 +205,7 @@ namespace BestHTTP.SocketIO
 
                 AckCallbacks[id] = callback;
             }
-
+            
             Packet packet = new Packet(TransportEventTypes.Message,
                                        attachments == null ? SocketIOEventTypes.Event : SocketIOEventTypes.BinaryEvent,
                                        this.Namespace,

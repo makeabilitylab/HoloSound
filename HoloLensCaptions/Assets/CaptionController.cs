@@ -121,7 +121,7 @@ namespace HoloToolkit.Unity
             input.AddGlobalListener(gameObject);
             classString = "started";
 
-            
+
             SocketOptions options = new SocketOptions();
             options.AutoConnect = true;
             options.ConnectWith = BestHTTP.SocketIO.Transports.TransportTypes.WebSocket;
@@ -189,7 +189,9 @@ namespace HoloToolkit.Unity
             speechThread = new Thread(SpeechThreadFnc);
             speechThread.Start();
             */
-            StartCoroutine(emitCoroutine("audio_data", dict));
+            StartCoroutine(TranscribingCoroutine());
+            StartCoroutine(emitCoroutine());
+            StartCoroutine(classificationCoroutine());
 
         }
 
@@ -325,48 +327,6 @@ namespace HoloToolkit.Unity
                 }
             }
 
-            pos = Microphone.GetPosition(null);
-            pos_class = pos;
-            if (pos < lastPos)
-            {
-                pos += 10 * RATE;
-            }
-            if (pos > lastPos + CHUNK)
-            {
-                // UnityEngine.Debug.Log("speech " + pos + " " + lastPos);
-                micClip.GetData(sample, lastPos);
-                lastPos = lastPos + CHUNK;
-                if (lastPos > RATE * 10)
-                {
-                    lastPos -= RATE * 10;
-                }
-                byte[] barry = new byte[sample.Length * 2];
-                FloatToByte(barry, sample);
-                audioStream.Write(barry, 0, barry.Length);
-            }
-
-
-            Task.Run(() => {
-                if (pos_class < lastPos_class)
-                {
-                    lastPos_class = 0;
-                }
-
-                if (pos_class > lastPos_class + RATE)
-                {
-                    
-                    Dispatcher.Instance.Invoke(() =>
-                    {
-                        micClip.GetData(sample_class, pos_class - RATE);
-                    });
-                    
-                    lastPos_class = pos_class - RATE;
-                    // UnityEngine.Debug.Log("sound " + pos_class + " " + lastPos_class);
-                    dict["data"] = FloatToShort(sample_class);
-                }
-            });
-
-
             // UnityEngine.Debug.Log("updating class " + classString);
             soundClassDisplay.GetComponent<TextMesh>().text = classString;
 
@@ -388,7 +348,7 @@ namespace HoloToolkit.Unity
 
         private void OnPacket_interm(string intermString)
         {
-            
+
             foreach (GameObject o in captions)
             {
                 o.GetComponent<GlassEarTagalong>().AddText_interm(intermString);
@@ -543,7 +503,7 @@ namespace HoloToolkit.Unity
             }
 
 
-         
+
         }
 
         /// <summary>
@@ -705,17 +665,67 @@ namespace HoloToolkit.Unity
             }
         }
 
-        IEnumerator emitCoroutine(string s, Dictionary<string, short[]> dict)
+        IEnumerator emitCoroutine()
         {
             yield return new WaitForSeconds(1);
             while (true)
             {
-                print("???");
+
+
                 manager.Socket.Emit("audio_data", dict);
-                yield return new WaitForSeconds(0.5f);
+                yield return new WaitForSeconds(5f);
             }
 
             yield return null;
+        }
+
+        IEnumerator TranscribingCoroutine()
+        {
+            while (true)
+            {
+                pos = Microphone.GetPosition(null);
+                pos_class = pos;
+                if (pos < lastPos)
+                {
+                    pos += 10 * RATE;
+                }
+                if (pos > lastPos + CHUNK)
+                {
+                    // UnityEngine.Debug.Log("speech " + pos + " " + lastPos);
+                    micClip.GetData(sample, lastPos);
+                    lastPos = lastPos + CHUNK;
+                    if (lastPos > RATE * 10)
+                    {
+                        lastPos -= RATE * 10;
+                    }
+                    byte[] barry = new byte[sample.Length * 2];
+                    FloatToByte(barry, sample);
+                    audioStream.Write(barry, 0, barry.Length);
+                }
+
+                yield return new WaitForSeconds(0.1f);
+            }
+        }
+
+        IEnumerator classificationCoroutine()
+        {
+            while (true)
+            {
+                if (pos_class < lastPos_class)
+                {
+                    lastPos_class = 0;
+                }
+
+                if (pos_class > lastPos_class + RATE)
+                {
+                    micClip.GetData(sample_class, pos_class - RATE);
+
+                    lastPos_class = pos_class - RATE;
+                    // UnityEngine.Debug.Log("sound " + pos_class + " " + lastPos_class);
+                     dict["data"] = FloatToShort(sample_class);
+                }
+                yield return new WaitForSeconds(5f);
+            }
         }
     }
 }
