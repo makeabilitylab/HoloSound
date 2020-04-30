@@ -633,7 +633,10 @@ namespace BestHTTP
                                 case HTTPConnectionStates.WaitForProtocolShutdown:
                                     var ws = conn.CurrentRequest.Response as IProtocol;
                                     if (ws != null)
+                                    {
+                                        UnityEngine.Debug.Log("handling");
                                         ws.HandleEvents();
+                                    }
 
                                     if (ws == null || ws.IsClosed)
                                     {

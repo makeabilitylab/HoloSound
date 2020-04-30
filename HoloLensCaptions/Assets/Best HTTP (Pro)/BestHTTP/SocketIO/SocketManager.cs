@@ -536,7 +536,11 @@ namespace BestHTTP.SocketIO
 
             Socket socket = null;
             if (Namespaces.TryGetValue(packet.Namespace, out socket))
+            {
+                UnityEngine.Debug.Log("outer OnPacket called");
                 (socket as ISocket).OnPacket(packet);
+            }
+                
             else
                 HTTPManager.Logger.Warning("SocketManager", "Namespace \"" + packet.Namespace + "\" not found!");
         }

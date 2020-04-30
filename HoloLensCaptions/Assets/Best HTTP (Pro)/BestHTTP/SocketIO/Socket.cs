@@ -178,8 +178,8 @@ namespace BestHTTP.SocketIO
 
             try
             {
-                payload = "{}"; 
-                    //Manager.Encoder.Encode(arguments);
+                payload = Manager.Encoder.Encode(arguments);
+                UnityEngine.Debug.Log(payload);
             }
             catch(Exception ex)
             {
@@ -205,7 +205,7 @@ namespace BestHTTP.SocketIO
 
                 AckCallbacks[id] = callback;
             }
-            
+
             Packet packet = new Packet(TransportEventTypes.Message,
                                        attachments == null ? SocketIOEventTypes.Event : SocketIOEventTypes.BinaryEvent,
                                        this.Namespace,
@@ -215,6 +215,27 @@ namespace BestHTTP.SocketIO
 
             if (attachments != null)
                 packet.Attachments = attachments; // This will set the AttachmentCount property too.
+
+            (Manager as IManager).SendPacket(packet);
+
+            return this;
+        }
+
+        public Socket MyEmit(string eventName, string payload)
+        {
+            bool blackListed = EventNames.IsBlacklisted(eventName);
+            if (blackListed)
+                throw new ArgumentException("Blacklisted event: " + eventName);
+
+            
+            int id = 0;
+
+            Packet packet = new Packet(TransportEventTypes.Message,
+                                       SocketIOEventTypes.Event,
+                                       this.Namespace,
+                                       payload,
+                                       0,
+                                       id);
 
             (Manager as IManager).SendPacket(packet);
 
@@ -369,6 +390,7 @@ namespace BestHTTP.SocketIO
         /// </summary>
         void ISocket.OnPacket(Packet packet)
         {
+            UnityEngine.Debug.Log("inner on packet called");
             // Some preprocessing of the packet
             switch(packet.SocketIOEvent)
             {

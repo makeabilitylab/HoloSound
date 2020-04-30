@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -74,6 +75,7 @@ namespace HoloToolkit.Unity
         private string intermString = "";
         private string errorString = "";
         private string classString = "";
+        private string emitRequestString = "";
         private System.Object threadLocker = new System.Object();
 
         // Speech recognition key, required
@@ -102,11 +104,13 @@ namespace HoloToolkit.Unity
 
         LinkedList<String> outlst = new LinkedList<String>();
         int len = 0;
+        int delayCounter = 0;
 
         SocketManager manager;
 
         const int CHANNELS = 1;
         Dictionary<String, short[]> dict = new Dictionary<string, short[]>();
+        Queue<float[]> queue = new Queue<float[]>();
 
         protected void Start()
         {
@@ -191,7 +195,7 @@ namespace HoloToolkit.Unity
             */
             StartCoroutine(TranscribingCoroutine());
             StartCoroutine(emitCoroutine());
-            StartCoroutine(classificationCoroutine());
+            //StartCoroutine(classificationCoroutine());
 
         }
 
@@ -670,10 +674,11 @@ namespace HoloToolkit.Unity
             yield return new WaitForSeconds(1);
             while (true)
             {
+                //manager.Socket.Emit("audio_data", dict);
+                UnityEngine.Debug.Log("emitting  " + emitRequestString);
+                manager.Socket.MyEmit("audio_data", emitRequestString);
 
-
-                manager.Socket.Emit("audio_data", dict);
-                yield return new WaitForSeconds(5f);
+                yield return new WaitForSeconds(1f);
             }
 
             yield return null;
@@ -684,14 +689,14 @@ namespace HoloToolkit.Unity
             while (true)
             {
                 pos = Microphone.GetPosition(null);
-                pos_class = pos;
+                
                 if (pos < lastPos)
                 {
                     pos += 10 * RATE;
                 }
                 if (pos > lastPos + CHUNK)
                 {
-                    // UnityEngine.Debug.Log("speech " + pos + " " + lastPos);
+                    UnityEngine.Debug.Log("speech " + pos + " " + lastPos);
                     micClip.GetData(sample, lastPos);
                     lastPos = lastPos + CHUNK;
                     if (lastPos > RATE * 10)
@@ -703,29 +708,87 @@ namespace HoloToolkit.Unity
                     audioStream.Write(barry, 0, barry.Length);
                 }
 
-                yield return new WaitForSeconds(0.1f);
+                float[] copyArr = new float[sample.Length];
+                for (var i = 0; i < sample.Length; i++)
+                    copyArr[i] = sample[i];
+                queue.Enqueue(copyArr);
+                if (queue.Count > 10)
+                {
+                    queue.Dequeue();
+                }
+
+                if (delayCounter >= 40)
+                {
+                    delayCounter = 0;
+
+                    for (var i = 0; i < 10; i++)
+                    {
+                        copyArr = queue.Dequeue();
+                        for (var j = 0; j < sample.Length; j++)
+                            sample_class[j] = copyArr[j];
+                    }
+
+                    //micClip.GetData(sample_class, pos_class - RATE);
+                    //UnityEngine.Debug.Log("emitting " + pos_class + " " + lastPos_class);
+                    //lastPos_class = pos_class;
+                    //dict["data"] = FloatToShort(sample_class);
+
+                    StringBuilder sb = new StringBuilder();
+                    sb.Append("[\"audio_data\", {\"data\":[");
+                    short[] temp = FloatToShort(sample_class);
+
+                    for (int i = 0; i < temp.Length - 1; i++)
+                    {
+                        sb.Append(temp[i]);
+                        sb.Append(", ");
+                    }
+                    sb.Append(temp[temp.Length - 1]);
+
+                    //sb.Append(string.Join(",", temp));
+                    sb.Append("]}]");
+                    emitRequestString = sb.ToString();
+                    
+                    //manager.Socket.MyEmit("audio_data", emitRequestString);
+                }
+                delayCounter += 1;
+                yield return new WaitForSeconds(0.05f);
             }
         }
 
-        IEnumerator classificationCoroutine()
-        {
-            while (true)
-            {
-                if (pos_class < lastPos_class)
-                {
-                    lastPos_class = 0;
-                }
+        //IEnumerator classificationCoroutine()
+        //{
+        //    while (true)
+        //    {
+        //        pos_class = Microphone.GetPosition(null);
+        //        if (pos_class < lastPos_class)
+        //        {
+        //            pos_class += 10 * RATE;
+        //        }
+        //        if (pos_class > lastPos_class + RATE)
+        //        {
+        //            micClip.GetData(sample_class, pos_class - RATE);
+        //            //UnityEngine.Debug.Log("emitting " + pos_class + " " + lastPos_class);
+        //            lastPos_class = pos_class;
+        //            //dict["data"] = FloatToShort(sample_class);
 
-                if (pos_class > lastPos_class + RATE)
-                {
-                    micClip.GetData(sample_class, pos_class - RATE);
+        //            StringBuilder sb = new StringBuilder();
+        //            sb.Append("[\"audio_data\", {\"data\":[");
+        //            short[] temp = FloatToShort(sample_class);
+        //            //UnityEngine.Debug.Log(emitRequestString);
+        //            //for (int i = 0; i < temp.Length - 1; i++)
+        //            //{
+        //            //    sb.Append(temp[i]);
+        //            //    sb.Append(", ");
+        //            //}
+        //            //sb.Append(temp[temp.Length - 1]);
+        //            sb.Append(string.Join(",", temp));
+        //            sb.Append("]}]");
+        //            emitRequestString = sb.ToString();
+        //            UnityEngine.Debug.Log(emitRequestString);
+        //        }
 
-                    lastPos_class = pos_class - RATE;
-                    // UnityEngine.Debug.Log("sound " + pos_class + " " + lastPos_class);
-                     dict["data"] = FloatToShort(sample_class);
-                }
-                yield return new WaitForSeconds(5f);
-            }
-        }
+        //        yield return new WaitForSeconds(0.5f);
+        //    }
+        //}
     }
 }

@@ -439,10 +439,12 @@ namespace BestHTTP.WebSocket
         {
             try
             {
+                UnityEngine.Debug.Log("out try");
                 using (var bufferedStream = new ReadOnlyBufferedStream(this.Stream))
                 {
                     while (!closed)
                     {
+                        UnityEngine.Debug.Log("in try");
                         try
                         {
                             WebSocketFrameReader frame = new WebSocketFrameReader();
@@ -461,13 +463,17 @@ namespace BestHTTP.WebSocket
 
                             if (!frame.IsFinal)
                             {
+                                UnityEngine.Debug.Log("frame is final");
                                 if (OnIncompleteFrame == null)
+                                {
+                                    UnityEngine.Debug.Log("incomplete add");
                                     IncompleteFrames.Add(frame);
+                                }
                                 else
                                     lock (FrameLock) CompletedFrames.Add(frame);
                                 continue;
                             }
-
+                            UnityEngine.Debug.Log("entering switch");
                             switch (frame.Type)
                             {
                                 // For a complete documentation and rules on fragmentation see http://tools.ietf.org/html/rfc6455#section-5.4
@@ -485,12 +491,17 @@ namespace BestHTTP.WebSocket
                                         goto case WebSocketFrameTypes.Binary;
                                     }
                                     else
+                                    {
+                                        UnityEngine.Debug.Log("complete add");
                                         lock (FrameLock) CompletedFrames.Add(frame);
+
+                                    }
                                     break;
 
                                 case WebSocketFrameTypes.Text:
                                 case WebSocketFrameTypes.Binary:
                                     frame.DecodeWithExtensions(WebSocket);
+                                    UnityEngine.Debug.Log("complete add");
                                     lock (FrameLock) CompletedFrames.Add(frame);
                                     break;
 
@@ -585,7 +596,6 @@ namespace BestHTTP.WebSocket
                 frameCache.AddRange(CompletedFrames);
                 CompletedFrames.Clear();
             }
-
             for (int i = 0; i < frameCache.Count; ++i)
             {
                 WebSocketFrameReader frame = frameCache[i];
@@ -606,7 +616,10 @@ namespace BestHTTP.WebSocket
                                 goto case WebSocketFrameTypes.Continuation;
 
                             if (OnText != null)
+                            {
+                                UnityEngine.Debug.Log("ontext called");
                                 OnText(this, frame.DataAsText);
+                            }
                             break;
 
                         case WebSocketFrameTypes.Binary:
