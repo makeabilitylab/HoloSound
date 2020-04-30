@@ -437,6 +437,7 @@ namespace BestHTTP.WebSocket
 
         private void ReceiveThreadFunc(object param)
         {
+            UnityEngine.Debug.Log(">?");
             try
             {
                 UnityEngine.Debug.Log("out try");

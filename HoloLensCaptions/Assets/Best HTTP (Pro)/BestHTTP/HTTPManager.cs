@@ -634,7 +634,7 @@ namespace BestHTTP
                                     var ws = conn.CurrentRequest.Response as IProtocol;
                                     if (ws != null)
                                     {
-                                        UnityEngine.Debug.Log("handling");
+                                        // UnityEngine.Debug.Log("handling");
                                         ws.HandleEvents();
                                     }
 

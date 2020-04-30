@@ -337,27 +337,27 @@ namespace BestHTTP.SocketIO
         internal string Encode()
         {
             StringBuilder builder = new StringBuilder();
-
+            UnityEngine.Debug.Log("a  " + builder.ToString());
             // Set to Message if not set, and we are sending attachments
             if (this.TransportEvent == TransportEventTypes.Unknown && this.AttachmentCount > 0)
                 this.TransportEvent = TransportEventTypes.Message;
-
+            UnityEngine.Debug.Log("b  " + builder.ToString());
             if (this.TransportEvent != TransportEventTypes.Unknown)
                 builder.Append(((int)this.TransportEvent).ToString());
-
+            UnityEngine.Debug.Log("c  " + builder.ToString());
             // Set to BinaryEvent if not set, and we are sending attachments
             if (this.SocketIOEvent == SocketIOEventTypes.Unknown && this.AttachmentCount > 0)
                 this.SocketIOEvent = SocketIOEventTypes.BinaryEvent;
-
+            UnityEngine.Debug.Log("d  " + builder.ToString());
             if (this.SocketIOEvent != SocketIOEventTypes.Unknown)
                 builder.Append(((int)this.SocketIOEvent).ToString());
-
+            UnityEngine.Debug.Log("e  " + builder.ToString());
             if (this.SocketIOEvent == SocketIOEventTypes.BinaryEvent || this.SocketIOEvent == SocketIOEventTypes.BinaryAck)
             {
                 builder.Append(this.AttachmentCount.ToString());
                 builder.Append("-");
             }
-
+            UnityEngine.Debug.Log("f  " + builder.ToString());
             // Add the namespace. If there is any other then the root nsp ("/")
             // then we have to add a trailing "," if we have more data.
             bool nspAdded = false;
@@ -366,7 +366,7 @@ namespace BestHTTP.SocketIO
                 builder.Append(this.Namespace);
                 nspAdded = true;
             }
-
+            UnityEngine.Debug.Log("g  " + builder.ToString());
             // ack id, if any
             if (this.Id != 0)
             {
@@ -375,10 +375,9 @@ namespace BestHTTP.SocketIO
                     builder.Append(",");
                     nspAdded = false;
                 }
-
                 builder.Append(this.Id.ToString());
             }
-
+            UnityEngine.Debug.Log("h  " + builder.ToString());
             // payload
             if (!string.IsNullOrEmpty(this.Payload))
             {
@@ -390,8 +389,10 @@ namespace BestHTTP.SocketIO
 
                 builder.Append(this.Payload);
             }
-
+            UnityEngine.Debug.Log(this.Payload);
+            UnityEngine.Debug.Log("packet  " + builder.ToString());
             return builder.ToString();
+            
         }
 
         /// <summary>

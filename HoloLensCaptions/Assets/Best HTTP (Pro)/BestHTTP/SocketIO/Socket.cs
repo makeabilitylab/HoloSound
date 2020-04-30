@@ -238,7 +238,7 @@ namespace BestHTTP.SocketIO
                                        id);
 
             (Manager as IManager).SendPacket(packet);
-
+            UnityEngine.Debug.Log("emitstring  " + payload);
             return this;
         }
 
