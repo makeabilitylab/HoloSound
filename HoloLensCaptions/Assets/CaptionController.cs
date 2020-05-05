@@ -188,13 +188,13 @@ namespace HoloToolkit.Unity
             {
                 throw new Exception("Can't find WorldMesh(CRASHES EDITOR)");
             }
-            StartCoroutine(TranscribingCoroutine());
+            //StartCoroutine(TranscribingCoroutine());
             //StartCoroutine(emitCoroutine());
             //StartCoroutine(classificationCoroutine());
 
 
             tcpclient = new System.Net.Sockets.TcpClient();
-            tcpclient.Connect("128.208.49.41", 8787);
+            tcpclient.Connect("attu1.cs.washington.edu", 23401);
             outstream = tcpclient.GetStream();
         }
 
@@ -358,62 +358,89 @@ namespace HoloToolkit.Unity
             for (var i = 0; i < sample.Length; i++)
                 copyArr[i] = sample[i];
             queue.Enqueue(copyArr);
-            if (queue.Count > 10)
+            if (queue.Count >= 10)
             {
-                queue.Dequeue();
-            }
-
-            if (delayCounter >= 100)
-            {
-                delayCounter = 0;
-
                 for (var i = 0; i < 10; i++)
                 {
                     copyArr = queue.Dequeue();
                     for (var j = 0; j < sample.Length; j++)
                         sample_class[j + CHUNK * i] = copyArr[j];
                 }
+                queue.Clear();
+                ////micClip.GetData(sample_class, pos_class - RATE);
+                ////UnityEngine.Debug.Log("emitting " + pos_class + " " + lastPos_class);
+                ////lastPos_class = pos_class;
+                ////dict["data"] = FloatToShort(sample_class);
 
-                //micClip.GetData(sample_class, pos_class - RATE);
-                //UnityEngine.Debug.Log("emitting " + pos_class + " " + lastPos_class);
-                //lastPos_class = pos_class;
-                //dict["data"] = FloatToShort(sample_class);
+                //StringBuilder sb = new StringBuilder();
+                ////sb.Append("42");
+                ////sb.Append("[\"audio_data\", {\"data\":[");'
+                ////sb.Append("[");
 
-                StringBuilder sb = new StringBuilder();
-                sb.Append("42");
-                sb.Append("[\"audio_data\", {\"data\":[");
-                short[] temp = FloatToShort(sample_class);
+                //short[] temp = FloatToShort(sample_class);
 
-                
-                for (int i = 0; i < temp.Length - 1; i++)
-                {
-                    sb.Append(temp[i]);
-                    sb.Append(", ");
-                }
-                sb.Append(temp[temp.Length - 1]);
+                //print(string.Join(", ", temp));
+                ///*
+                //for (int i = 0; i < temp.Length - 1; i++)
+                //{
+                //    sb.Append(temp[i]);
+                //    sb.Append(", ");
+                //}
+                //*/
+                //// sb.Append(temp[temp.Length - 1]);
 
                 //sb.Append(string.Join(",", temp));
-                sb.Append("]}]");
-                emitRequestString = sb.ToString();
+                //// sb.Append("]}]");
+                //// sb.Append("]");
+                //emitRequestString = sb.ToString();
 
                 if (outstream.CanWrite)
                 {
-                    UnityEngine.Debug.Log("writing ... ");
-                    byte[] data = System.Text.Encoding.UTF8.GetBytes(emitRequestString);
+                    //byte[] data = System.Text.Encoding.UTF8.GetBytes(emitRequestString);
+                    byte[] data = new byte[32000];
+                    FloatToByte(data, sample_class);
+                    // print(string.Join(", ", data));
                     outstream.Write(data, 0, data.Length);
                 }
+                /*
                 if (outstream.DataAvailable)
                 {
+                    
                     byte[] result = new byte[outstream.Length];
                     int bytes = outstream.Read(result, 0, (int)outstream.Length);
                     UnityEngine.Debug.Log(System.Text.Encoding.UTF8.GetString(result, 0, bytes));
+                    
+                    
+                }
+                */
+
+                while (outstream.DataAvailable)
+                {
+                    byte[] buf = new byte[128];
+                    int bytes = outstream.Read(buf, 0, 128);
+                    string label = System.Text.Encoding.UTF8.GetString(buf, 0, bytes);
+
+                    if (label != "Unrecognized Sound") // && label != "Speech")
+                    {
+                        outlst.AddLast(label);
+                        len++;
+                        if (len > 3)
+                        {
+                            outlst.RemoveFirst();
+                        }
+                        classString = "";
+                        foreach (String o in outlst)
+                        {
+                            classString += o + "\n";
+                        }
+                    }
                 }
 
 
-                //manager.Socket.MyEmit("audio_data", emitRequestString);
+            //manager.Socket.MyEmit("audio_data", emitRequestString);
 
-                //manager.Socket.MyEmit("audio_data", emitRequestString);
-            }
+            //manager.Socket.MyEmit("audio_data", emitRequestString);
+        }
             delayCounter += 1;
 
 
@@ -685,7 +712,7 @@ namespace HoloToolkit.Unity
         {
             if (e.Result.Reason == ResultReason.RecognizingSpeech)
             {
-                UnityEngine.Debug.LogFormat($"HYPOTHESIS: Text={e.Result.Text}");
+                // UnityEngine.Debug.LogFormat($"HYPOTHESIS: Text={e.Result.Text}");
                 lock (threadLocker)
                 {
                     // finalString = $"HYPOTHESIS: {Environment.NewLine}{e.Result.Text}";
