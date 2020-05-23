@@ -47,9 +47,9 @@ public class Localization : MonoBehaviour
             {
                 float activity = directionActivity[i, j];
 
-                float x = Mathf.Sin(j * phiDivision) * Mathf.Cos(i * thetaDivision);
-                float y = Mathf.Sin(j * phiDivision) * Mathf.Sin(i * thetaDivision);
-                float z = Mathf.Cos(j * phiDivision);
+                float x = Mathf.Sin(j * (Mathf.PI / phiDivision)) * Mathf.Cos(i * (2 * Mathf.PI / thetaDivision));
+                float y = Mathf.Sin(j * (Mathf.PI / phiDivision)) * Mathf.Sin(i * (2 * Mathf.PI / thetaDivision));
+                float z = Mathf.Cos(j * (Mathf.PI / phiDivision));
 
                 Vector3 dir = new Vector3(x, y, z);
 
@@ -148,9 +148,8 @@ public class Localization : MonoBehaviour
             {
                 Vector2 xy = new Vector2(x, y);
                 float signedTheta = Vector2.SignedAngle(xy, new Vector2(1, 0)) / 180 * Mathf.PI; // ranges from -pi to pi
-                float unsignedTheta = signedTheta < 0 ? signedTheta + 2 * Mathf.PI : signedTheta; // ranges from 0 to 360
+                float unsignedTheta = signedTheta < 0 ? signedTheta + 2 * Mathf.PI : signedTheta; // ranges from 0 to 2pi
 
-                print(unsignedTheta);
                 int tIndexFloored = Mathf.FloorToInt(unsignedTheta / (2 * Mathf.PI / thetaDivision));
                 //int tIndex = tIndexFloored + Mathf.RoundToInt((unsignedTheta - tIndexFloored * (2 * Mathf.PI / thetaDivision)) / (2 * Mathf.PI / thetaDivision));
 
@@ -159,8 +158,6 @@ public class Localization : MonoBehaviour
                 // print(phi * 180 / Mathf.PI);
                 int pIndexFloored = Mathf.FloorToInt(phi / (Mathf.PI / phiDivision));
                 //int pIndex = pIndexFloored + Mathf.RoundToInt((phi - pIndexFloored * (Mathf.PI / pIndexFloored)) / (Mathf.PI / phiDivision));
-
-                print("tINdex: " + tIndexFloored + " pIndex:" + pIndexFloored);
                 pIndexFloored = 3;
                 directionActivity[tIndexFloored, pIndexFloored] = 1; // set activitiy on the direction to 1, fully active.
             }
@@ -203,7 +200,12 @@ public class Localization : MonoBehaviour
         Vector3 forward = new Vector3(0, 1, 0);
         Vector3 up = new Vector3(0, 0, 1);*/
 
-        float angle = Vector3.SignedAngle(dir, forward, up);
+        int angle = Mathf.RoundToInt(Vector3.SignedAngle(dir, forward, up));
+
+        if (activity == 1)
+        {
+            print(angle);
+        }
         int index = (int)(((angle + 360) % 360) / (360 / TwelveDir.Length));
         TwelveDir[index].SetActive(true);
 

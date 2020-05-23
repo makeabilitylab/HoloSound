@@ -240,8 +240,9 @@ namespace HoloToolkit.Unity
             Transform cameraTransform = CameraCache.Main.transform;
             Vector3 cameraPosition = cameraTransform.position;
 
+            Debug.DrawRay(Camera.main.transform.position, frustumPlanes[frustumBottom].normal, Color.red, 0.1f, false);
             Vector3 normalizedWindowPos = cameraPosition + (transform.position - cameraPosition).normalized;
-            Vector3 normalizedTargetPos = cameraPosition + (cameraTransform.forward + (frustumPlanes[frustumBottom].normal * (-0.5F * frustumPlanes[frustumBottom].GetDistanceToPoint(cameraPosition + cameraTransform.forward)))).normalized;
+            Vector3 normalizedTargetPos = cameraPosition + (cameraTransform.forward + (frustumPlanes[frustumBottom].normal * (0.3F * frustumPlanes[frustumBottom].GetDistanceToPoint(cameraPosition + cameraTransform.forward)))).normalized;
 
             if (!frozen) {
                 Vector3 offset = normalizedWindowPos - normalizedTargetPos; 

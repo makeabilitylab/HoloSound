@@ -36,7 +36,7 @@ namespace HoloToolkit.Unity
         public bool ShowCursor = true;
         public int TextSize = 0;
         public int TextLines = 2;
-        public int TextLineLength = 60;
+        public int TextLineLength = 40;
 
 
         private bool settings_set = false;
