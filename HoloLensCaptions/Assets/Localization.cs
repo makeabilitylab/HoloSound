@@ -51,7 +51,7 @@ public class Localization : MonoBehaviour
                 float y = Mathf.Sin(j * (Mathf.PI / phiDivision)) * Mathf.Sin(i * (2 * Mathf.PI / thetaDivision));
                 float z = Mathf.Cos(j * (Mathf.PI / phiDivision));
 
-                Vector3 dir = new Vector3(x, y, z);
+                Vector3 dir = new Vector3(x, z, y);
 
                 mapSourceDirectionToIndicators(dir, activity);
 
@@ -82,7 +82,6 @@ public class Localization : MonoBehaviour
     public void updateLocalization3D(string jsonMessage)
     {
         packetCount++;
-        print(packetCount / Time.time);
         JObject o;
         try
         {
@@ -105,9 +104,9 @@ public class Localization : MonoBehaviour
             {
 
                 // we've found a source
-                Vector3 pos = Camera.main.transform.position + 10 * x * new Vector3(1, 0, 0)
-                    + 10 * y * new Vector3(0, 0, 1)
-                    + 10 * z * new Vector3(0, 1, 0);
+                Vector3 pos = Camera.main.transform.position + x * Camera.main.transform.right + 
+                    + y * Camera.main.transform.forward
+                    + z * Camera.main.transform.up;
                 GameObject go = Instantiate(indicatorPrefeb, pos, Quaternion.identity);
                 temp.Add(go);
                 //clearIndicators();
@@ -146,20 +145,27 @@ public class Localization : MonoBehaviour
             float activity = float.Parse(obj["activity"].ToString()); // activity is the probablity that the sound source exists
             if (activity > 0.0f)
             {
-                Vector2 xy = new Vector2(x, y);
-                float signedTheta = Vector2.SignedAngle(xy, new Vector2(1, 0)) / 180 * Mathf.PI; // ranges from -pi to pi
-                float unsignedTheta = signedTheta < 0 ? signedTheta + 2 * Mathf.PI : signedTheta; // ranges from 0 to 2pi
+                Debug.DrawRay(Camera.main.transform.position, x * Camera.main.transform.right + z * Camera.main.transform.up + y * Camera.main.transform.forward, Color.green, 0.5f);
+                Vector2 xy = (new Vector2(x, y)).normalized;
 
+                float signedTheta = Vector2.SignedAngle(xy, new Vector2(1, 0)) / 180.0f * Mathf.PI;
+                float unsignedTheta = signedTheta < 0 ? signedTheta + 2 * Mathf.PI : signedTheta; // ranges from 0 to 2pi
+                // print(unsignedTheta * 180 / Mathf.PI);
                 int tIndexFloored = Mathf.FloorToInt(unsignedTheta / (2 * Mathf.PI / thetaDivision));
-                //int tIndex = tIndexFloored + Mathf.RoundToInt((unsignedTheta - tIndexFloored * (2 * Mathf.PI / thetaDivision)) / (2 * Mathf.PI / thetaDivision));
 
                 Vector3 xyz = new Vector3(x, y, z);
-                float phi = Vector3.Angle(new Vector3(0, 0, 1), xyz) / 180 * Mathf.PI; // phi is always unsigned
-                // print(phi * 180 / Mathf.PI);
+                float phi = Vector3.Angle(new Vector3(0, 0, 1), xyz) / 180.0f * Mathf.PI; // phi is always unsigned
                 int pIndexFloored = Mathf.FloorToInt(phi / (Mathf.PI / phiDivision));
                 //int pIndex = pIndexFloored + Mathf.RoundToInt((phi - pIndexFloored * (Mathf.PI / pIndexFloored)) / (Mathf.PI / phiDivision));
-                pIndexFloored = 3;
                 directionActivity[tIndexFloored, pIndexFloored] = 1; // set activitiy on the direction to 1, fully active.
+
+                float xx = Mathf.Sin(pIndexFloored * (Mathf.PI / phiDivision)) * Mathf.Cos(tIndexFloored * (2 * Mathf.PI / thetaDivision));
+                float yy = Mathf.Sin(pIndexFloored * (Mathf.PI / phiDivision)) * Mathf.Sin(tIndexFloored * (2 * Mathf.PI / thetaDivision));
+                float zz = Mathf.Cos(pIndexFloored * (Mathf.PI / phiDivision));
+
+                Debug.DrawRay(Camera.main.transform.position, xx * Camera.main.transform.right + zz * Camera.main.transform.up + yy * Camera.main.transform.forward, Color.red, 0.5f);
+
+
             }
         }
     }
@@ -172,6 +178,7 @@ public class Localization : MonoBehaviour
         // set opacity to 0
         foreach (GameObject go in TwelveDir)
         {
+            
             Color c = go.GetComponent<SpriteRenderer>().color;
             c.a = 0;
             go.GetComponent<SpriteRenderer>().color = c;
@@ -187,11 +194,10 @@ public class Localization : MonoBehaviour
      */
     private void mapSourceDirectionToIndicators(Vector3 dir, float activity)
     {
-        float y = dir.y;
-        float z = dir.z;
-        dir.z = y;
-        dir.y = z;
-
+        if (activity == 0)
+        {
+            return;
+        }
         Vector3 forward = Camera.main.transform.forward;
         Vector3 up = Camera.main.transform.up;
         /*
@@ -202,10 +208,6 @@ public class Localization : MonoBehaviour
 
         int angle = Mathf.RoundToInt(Vector3.SignedAngle(dir, forward, up));
 
-        if (activity == 1)
-        {
-            print(angle);
-        }
         int index = (int)(((angle + 360) % 360) / (360 / TwelveDir.Length));
         TwelveDir[index].SetActive(true);
 

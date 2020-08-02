@@ -46,6 +46,8 @@ namespace HoloToolkit.Unity
 
         public float lastHoverTime = -1.0f;
 
+        public TextMesh textDisplay;
+
         protected override void Start()
         {
             base.Start();
@@ -70,26 +72,26 @@ namespace HoloToolkit.Unity
         {
             base.Update();
 
-            float textSize = 0.0015F; // 0.0007F;
+            float textSize = 0.0005F; // 0.0007F;
             if (CaptionController.Instance.TextSize == 1)
             {
-                textSize = 0.0020F; // 0.0009F;
+                textSize = 0.0010F; // 0.0009F;
             }
             if (CaptionController.Instance.TextSize == 2)
             {
-                textSize = 0.0025F; // 0.0012F;
+                textSize = 0.0017F; // 0.0012F;
             }
 
-            GetComponent<TextMesh>().characterSize = textSize;
+            textDisplay.characterSize = textSize;
 
             transform.localScale = new Vector3(1,1,1) * (transform.position - CameraCache.Main.transform.position).magnitude;
 
             if (Time.time - lastHoverTime < 0.1)
             {
-                GetComponent<TextMesh>().color = new Color(1F, 0.5F, 0.5F);
+                textDisplay.color = new Color(1F, 0.5F, 0.5F);
             } else
             {
-                GetComponent<TextMesh>().color = Color.white;
+                textDisplay.color = Color.white;
             }
         }
 
@@ -149,7 +151,7 @@ namespace HoloToolkit.Unity
                 lines_temp.RemoveAt(0);
             }
 
-            TextMesh captionDisplay = GetComponent<TextMesh>();
+            TextMesh captionDisplay = textDisplay;
             captionDisplay.text = string.Join("\n", lines_temp.ToArray());
         }
 
@@ -212,9 +214,9 @@ namespace HoloToolkit.Unity
                 lines.RemoveAt(0);
             }
 
-            TextMesh captionDisplay = GetComponent<TextMesh>();
+            //TextMesh captionDisplay = textDisplay;
 
-            captionDisplay.text = string.Join("\n", lines.ToArray());
+            textDisplay.text = string.Join("\n", lines.ToArray());
         }
 
         /// <summary>
@@ -242,7 +244,7 @@ namespace HoloToolkit.Unity
 
             Debug.DrawRay(Camera.main.transform.position, frustumPlanes[frustumBottom].normal, Color.red, 0.1f, false);
             Vector3 normalizedWindowPos = cameraPosition + (transform.position - cameraPosition).normalized;
-            Vector3 normalizedTargetPos = cameraPosition + (cameraTransform.forward + (frustumPlanes[frustumBottom].normal * (0.3F * frustumPlanes[frustumBottom].GetDistanceToPoint(cameraPosition + cameraTransform.forward)))).normalized;
+            Vector3 normalizedTargetPos = cameraPosition + (cameraTransform.forward + (frustumPlanes[frustumBottom].normal * (-0.5F * frustumPlanes[frustumBottom].GetDistanceToPoint(cameraPosition + cameraTransform.forward)))).normalized;
 
             if (!frozen) {
                 Vector3 offset = normalizedWindowPos - normalizedTargetPos; 
@@ -277,13 +279,20 @@ namespace HoloToolkit.Unity
                         {
                             if (!allHits[h].transform.IsChildOf(transform))
                             {
+                                //print(allHits[h].transform.gameObject.name);
                                 float angleBetween = Vector3.Angle(normalizedWindowPos - cameraPosition, allHits[h].point - cameraPosition);
                                 float dist = allHits[h].distance * Mathf.Cos(angleBetween * Mathf.Deg2Rad);
 
                                 TargetDistance = Mathf.Max(MinimumTagalongDistance, Mathf.Min(TargetDistance, dist));
+                                
                             }
                         }
                     }
+                }
+                if (TargetDistance != 5.0f)
+                {
+                    //CaptionController.Instance.OnPacket("" + TargetDistance);
+                    //print(TargetDistance);
                 }
             } else {
                 TargetDistance = captionDistance;
@@ -291,7 +300,7 @@ namespace HoloToolkit.Unity
 
             // Now recalculate the distance
             transform.position = cameraPosition + ((normalizedWindowPos - cameraPosition) * TargetDistance);
-
+            // print(captionDistance + ", " + TargetDistance);
             // don't use the interpolator
             toPosition = new Vector3(0,0,0);
             return false;

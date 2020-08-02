@@ -124,6 +124,7 @@ namespace HoloToolkit.Unity
             input.AddGlobalListener(gameObject);
             classString = "started";
 
+            
 
             SocketOptions options = new SocketOptions();
             options.AutoConnect = true;
@@ -192,10 +193,16 @@ namespace HoloToolkit.Unity
             //StartCoroutine(emitCoroutine());
             //StartCoroutine(classificationCoroutine());
 
-
+             
             tcpclient = new System.Net.Sockets.TcpClient();
-            tcpclient.Connect("attu1.cs.washington.edu", 23401);
+            tcpclient.Connect("attu2.cs.washington.edu", 23401);
             outstream = tcpclient.GetStream();
+            
+            int unused;
+            int samplingRate;
+            Microphone.GetDeviceCaps("", out unused, out samplingRate);
+            //AudioClip clip = Microphone.Start("", false, 1, samplingRate);
+            //OnPacket("channels :" + clip.channels);
         }
 
         public void EchoFn(Socket socket, Packet packet, params object[] args)
@@ -394,7 +401,7 @@ namespace HoloToolkit.Unity
                 //// sb.Append("]");
                 //emitRequestString = sb.ToString();
 
-                if (outstream.CanWrite)
+                if (outstream != null && outstream.CanWrite)
                 {
                     //byte[] data = System.Text.Encoding.UTF8.GetBytes(emitRequestString);
                     byte[] data = new byte[32000];
@@ -414,13 +421,17 @@ namespace HoloToolkit.Unity
                 }
                 */
 
-                while (outstream.DataAvailable)
+                while (outstream != null && outstream.DataAvailable)
                 {
                     byte[] buf = new byte[128];
                     int bytes = outstream.Read(buf, 0, 128);
                     string label = System.Text.Encoding.UTF8.GetString(buf, 0, bytes);
-
-                    if (label != "Unrecognized Sound") // && label != "Speech")
+                    /*
+                    string[] resultArr = labelResult.Split('#');
+                    string label = resultArr[0];
+                    float conf = float.Parse(resultArr[1]);
+                    */
+                    if (label != "Unrecognized Sound" && label != "Speech")
                     {
                         outlst.AddLast(label);
                         len++;
