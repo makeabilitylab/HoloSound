@@ -5,6 +5,8 @@ using UnityEngine;
 using System.Threading;
 using System.IO;
 
+// This class implements PullAudioInputStreamCallback and converts
+// microphone input to data stream.
 public class MicToAudioStream : PullAudioInputStreamCallback
 {
     private readonly EchoStream _dataStream = new EchoStream();

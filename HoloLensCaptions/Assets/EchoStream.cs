@@ -7,6 +7,7 @@ using System.IO;
 using System.Collections.Concurrent;
 using System.Linq;
 
+// This class implements MemoryStream to be used by MicToAudioStream
 public class EchoStream : MemoryStream
 {
     private readonly ManualResetEvent _DataReady = new ManualResetEvent(false);
@@ -21,7 +22,6 @@ public class EchoStream : MemoryStream
         _Buffers.Enqueue(buffer.Take(count).ToArray()); // add new data to buffer
         _DataReady.Set(); // allow waiting reader to proceed
         wc++;
-        // UnityEngine.Debug.Log("wc " + wc);
     }
 
     public override int Read(byte[] buffer, int offset, int count)
@@ -41,7 +41,6 @@ public class EchoStream : MemoryStream
 
         Array.Copy(lBuffer, buffer, lBuffer.Length);
         rc++;
-        // UnityEngine.Debug.Log("rc " + rc);
         return lBuffer.Length;
     }
 }
