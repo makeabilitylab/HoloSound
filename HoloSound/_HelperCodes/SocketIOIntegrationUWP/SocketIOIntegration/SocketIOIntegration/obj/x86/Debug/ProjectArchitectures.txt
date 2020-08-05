@@ -1,1 +1,0 @@
-C:\Users\black\GIT\GlassEar\SocketIOIntegrationUWP\SocketIOIntegration\SocketIOIntegration\SocketIOIntegration.csproj;x86
