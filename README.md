@@ -30,8 +30,6 @@ Open `HoloSoundUnity` in Unity. Change build setting to UWP and use IL2CPP as ba
 
 Open `Assets/CaptionController.cs` and change variables `SERVER_URL` and `SERVER_PORT` to the corresponding values of the sound recognition server. Instructions for the sound recognition server can be found at `SoundRecognitionServer/README.md`
 
-We also have a build version in `Build/`
-
 ## Support
 ---
 Contact [Greg](mailto:grgrggtr@cs.washington.edu) or [Robin](mailto:yangy87@cs.washington.edu) @MakeabilityLab through email `grgrggtr@cs.washington.edu` and `yangy87@cs.washington.edu` 
