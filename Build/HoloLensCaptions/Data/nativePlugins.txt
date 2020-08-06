@@ -1,0 +1,5 @@
+PlaneFinding.dll
+Microsoft.CognitiveServices.Speech.core.dll
+Microsoft.CognitiveServices.Speech.extension.kws.dll
+SharingClient.dll
+HolographicStreamerDesktop.dll
